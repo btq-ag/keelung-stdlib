@@ -61,11 +61,11 @@ sigma =
 --     x0101kknn = 0x01010000 + (keyLen `shiftL` 8) + hashLen
 
 compress ::
-  Ref ('A ('A ('V 'Bool))) -> -- 128 bytes of message to compress
+  Ref ('A W64) -> -- 128 bytes of message to compress
   Int128 -> -- count of bytes that have been compressed before
   Bool -> -- is this the final round of compression?
-  Ref ('A ('A ('V 'Bool))) -> -- 128 bytes of old hash value
-  Comp n (Ref ('A ('A ('V 'Bool)))) -- 128 bytes of new hash value
+  Ref ('A W64) -> -- 128 bytes of old hash value
+  Comp n (Ref ('A W64)) -- 128 bytes of new hash value
 compress msgChunk count final input = do
   -- 16 Word64 as local state
   vs <- allocArray2 16 64
@@ -79,13 +79,13 @@ compress msgChunk count final input = do
   -- Remaining 8 items are initialized from the IV
   forM_ [8 .. 15] $ \i -> do
     ref <- access i vs
-    writeWord64 ref (iv !! i)
+    writeW64 ref (iv !! i)
 
   --  Mix the 128-bit counter into V12 & V13
   v12 <- access 12 vs
-  writeWord64 v12 (Int128.int128Lo64 count)
+  writeW64 v12 (Int128.int128Lo64 count)
   v13 <- access 13 vs
-  writeWord64 v13 (Int128.int128Hi64 count)
+  writeW64 v13 (Int128.int128Hi64 count)
 
   -- If this is the last block then invert all the bits in V14
   when final $ do
@@ -98,20 +98,102 @@ compress msgChunk count final input = do
   forM_ [0 .. 11] $ \i -> do
     -- Select message mixing schedule for this round.
     -- BLAKE2b uses 12 rounds, while 'sigma' has only 10 entries.
-    -- mix()
+    -- mix vs 
     return ()
 
   return input
 
+mix ::
+  Ref ('A W64) ->
+  Int ->
+  Int ->
+  Int ->
+  Int ->
+  Ref ('A W64) ->
+  Int ->
+  Int ->
+  Comp n ()
+mix vs ai bi ci di msg xi yi = do
+  a <- access ai vs
+  b <- access bi vs
+  c <- access ci vs
+  d <- access di vs
+
+  x <- access xi msg
+  y <- access yi msg
+
+  -- Va ← Va + Vb + x   (with input)
+  addW64 a b >>= addW64 x >>= copyToW64 a
+  -- Vd ← (Vd xor Va) rotateright 32
+  xorW64 d a >>= rotateW64 (-32) >>= copyToW64 d
+
+  -- Vc ← Vc + Vd       (no input)
+  addW64 c d >>= copyToW64 c
+  -- Vb ← (Vb xor Vc) rotateright 24
+  xorW64 b c >>= rotateW64 (-24) >>= copyToW64 b 
+
+  -- Va ← Va + Vb + y   (with input)
+  addW64 a b >>= addW64 y >>= copyToW64 a
+  -- Vd ← (Vd xor Va) rotateright 16
+  xorW64 d a >>= rotateW64 (-16) >>= copyToW64 d 
+
+  -- Vc ← Vc + Vd       (no input)
+  addW64 c d >>= copyToW64 a
+  -- Vb ← (Vb xor Vc) rotateright 63
+  xorW64 b c >>= rotateW64 (-63) >>= copyToW64 b 
+
+  return ()
+
 -- | Write a Word64 to an array of bits
-writeWord64 :: Ref ('A ('V 'Bool)) -> Word64 -> Comp n ()
-writeWord64 arr w = forM_ [0 .. 63] $ \i -> do
+writeW64 :: Ref W64 -> Word64 -> Comp n ()
+writeW64 arr w = forM_ [0 .. 63] $ \i -> do
   let bitValue = Val (Boolean (testBit w i))
   update arr i bitValue
 
--- copyArray :: Ref ('A ('V 'Bool)) -> Ref ('A ('V 'Bool)) -> Comp n ()
--- copyArray source target = do
---   forM_ [0 .. 15] $ \i -> do
---     forM_ [0 .. 63] $ \j -> do
---       b <- access2 (i, j) source
---       update2 target (i, j) (Var b)
+type W64 = 'A ('V 'Bool)
+
+copyToW64 :: Ref W64 -> Ref W64 -> Comp n ()
+copyToW64 src tgt = forM_ [0 .. 63] $ \i -> do
+  srcBit <- access i src
+  tgtBit <- access i tgt
+  update tgt i (Var srcBit)
+
+addW64 :: Ref W64 -> Ref W64 -> Comp n (Ref W64)
+addW64 as bs = do
+  -- allocate a new array of 64 bits for the result of the addition
+  result <- allocArray 64
+  -- 1-bit full adder
+  foldM_
+    ( \carry i -> do
+        a <- access i as
+        b <- access i bs
+        let aXorb = Var a `Xor` Var b
+        let value = aXorb `Xor` carry
+        let nextCarry = (Var a `And` Var b) `Or` (aXorb `And` carry)
+        update result i value
+        return nextCarry
+    )
+    false
+    [0 .. 63]
+  return result
+
+xorW64 :: Ref W64 -> Ref W64 -> Comp n (Ref W64)
+xorW64 as bs = do
+  result <- allocArray 64
+  forM_ [0 .. 63] $ \i -> do
+    a <- access i as
+    b <- access i bs
+    update result i (Var a `Xor` Var b)
+  return result
+
+-- | Rotates left by i bits if i is positive, or right by -i bits otherwise.
+rotateW64 :: Int -> Ref W64 -> Comp n (Ref W64)
+rotateW64 n xs = do
+  result <- allocArray 64
+  forM_ [0 .. 63] $ \i -> do
+    x <- access i xs
+    let i' = (n - i) `mod` 64
+    update result i' (Var x)
+  return result
+
+-- updateW64 ::
