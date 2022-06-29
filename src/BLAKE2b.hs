@@ -1,5 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use head" #-}
 
 module BLAKE2b where
 
@@ -65,16 +68,16 @@ compress ::
   Int128 -> -- count of bytes that have been compressed before
   Bool -> -- is this the final round of compression?
   Ref ('A W64) -> -- 128 bytes of old hash value
-  Comp n (Ref ('A W64)) -- 128 bytes of new hash value
-compress msgChunk count final input = do
+  Comp n ()
+compress msg count final hash = do
   -- 16 Word64 as local state
   vs <- allocArray2 16 64
 
-  -- First 8 items are copied from old state 'input'
+  -- First 8 items are copied from old hash
   forM_ [0 .. 7] $ \j -> do
-    forM_ [0 .. 63] $ \i -> do
-      b <- access2 (j, i) input
-      update2 vs (j, i) (Var b)
+    h <- access j hash
+    v <- access j vs
+    copyToW64 h v
 
   -- Remaining 8 items are initialized from the IV
   forM_ [8 .. 15] $ \i -> do
@@ -98,10 +101,29 @@ compress msgChunk count final input = do
   forM_ [0 .. 11] $ \i -> do
     -- Select message mixing schedule for this round.
     -- BLAKE2b uses 12 rounds, while 'sigma' has only 10 entries.
-    -- mix vs 
-    return ()
+    let indices = sigma !! i
+    mix vs 0 4 8 12 msg (indices !! 0) (indices !! 1)
+    mix vs 1 5 9 13 msg (indices !! 2) (indices !! 3)
+    mix vs 2 6 10 14 msg (indices !! 4) (indices !! 5)
+    mix vs 3 7 11 15 msg (indices !! 6) (indices !! 7)
+    mix vs 0 5 10 15 msg (indices !! 8) (indices !! 9)
+    mix vs 1 6 11 12 msg (indices !! 10) (indices !! 11)
+    mix vs 2 7 8 13 msg (indices !! 12) (indices !! 13)
+    mix vs 3 4 9 14 msg (indices !! 14) (indices !! 15)
 
-  return input
+  -- Mix the upper and lower halves of `vs` into 'hash'
+  --  h0..7 ← h0..7 xor V0..7
+  forM_ [0 .. 7] $ \i -> do
+    h <- access i hash
+    v <- access i vs
+    x <- h `xorW64` v
+    copyToW64 x h
+  --  h0..7 ← h0..7 xor V8..15
+  forM_ [0 .. 7] $ \i -> do
+    h <- access i hash
+    v <- access (i + 8) vs
+    x <- h `xorW64` v
+    copyToW64 x h
 
 mix ::
   Ref ('A W64) ->
@@ -130,17 +152,17 @@ mix vs ai bi ci di msg xi yi = do
   -- Vc ← Vc + Vd       (no input)
   addW64 c d >>= copyToW64 c
   -- Vb ← (Vb xor Vc) rotateright 24
-  xorW64 b c >>= rotateW64 (-24) >>= copyToW64 b 
+  xorW64 b c >>= rotateW64 (-24) >>= copyToW64 b
 
   -- Va ← Va + Vb + y   (with input)
   addW64 a b >>= addW64 y >>= copyToW64 a
   -- Vd ← (Vd xor Va) rotateright 16
-  xorW64 d a >>= rotateW64 (-16) >>= copyToW64 d 
+  xorW64 d a >>= rotateW64 (-16) >>= copyToW64 d
 
   -- Vc ← Vc + Vd       (no input)
   addW64 c d >>= copyToW64 a
   -- Vb ← (Vb xor Vc) rotateright 63
-  xorW64 b c >>= rotateW64 (-63) >>= copyToW64 b 
+  xorW64 b c >>= rotateW64 (-63) >>= copyToW64 b
 
   return ()
 
