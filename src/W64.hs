@@ -1,12 +1,16 @@
 {-# LANGUAGE DataKinds #-}
 
-module W64 where 
+module W64 where
 
-import Keelung
 import Control.Monad
+import Data.Bits (Bits (testBit))
+import Data.Word (Word64)
+import Keelung
 
 type W64 = 'Arr 'Bool
 
+fromWord64 :: Word64 -> Comp n (Expr W64 n)
+fromWord64 word = toArray $ map (Val . Boolean . testBit word) [0 .. 63]
 
 -- | Rotates left by i bits if i is positive, or right by -i bits otherwise.
 rotate :: Int -> Expr W64 n -> Comp n (Expr W64 n)
@@ -17,7 +21,6 @@ rotate n xs = do
     let i' = (i - n) `mod` 64
     update result i' x
   return result
-
 
 add :: Expr W64 n -> Expr W64 n -> Comp n (Expr W64 n)
 add = fullAdder 64
@@ -30,11 +33,16 @@ xor as bs = do
     return (a `Xor` b)
   toArray bits
 
-copyTo :: Expr W64 n -> Expr W64 n -> Comp n ()
-copyTo src tgt = forM_ [0 .. 63] $ \i -> do
-  srcBit <- access src i
-  tgtBit <- access tgt i
-  update tgt i srcBit
+complement :: Expr W64 n -> Comp n (Expr W64 n)
+complement xs = do
+  bits <- fromArray xs
+  toArray (map neg bits)
+
+-- copyTo :: Expr W64 n -> Expr W64 n -> Comp n ()
+-- copyTo src tgt = forM_ [0 .. 63] $ \i -> do
+--   srcBit <- access src i
+--   tgtBit <- access tgt i
+--   update tgt i srcBit
 
 --------------------------------------------------------------------------------
 

@@ -65,67 +65,66 @@ sigma =
 --     -- then x0101kknn = 0x010101103
 --     x0101kknn = 0x01010000 + (keyLen `shiftL` 8) + hashLen
 
--- compress ::
---   Expr ('Arr W64) n -> -- 128 bytes of message to compress
---   Int128 -> -- count of bytes that have been compressed before
---   Bool -> -- is this the final round of compression?
---   Expr ('Arr W64) n -> -- 128 bytes of old hash value
---   Comp n ()
--- compress msg count final hash = do
---   -- 16 Word64 as local state
---   vs <- allocArray2 16 64
+compress ::
+  Expr ('Arr W64) n -> -- 128 bytes of message to compress
+  Int128 -> -- count of bytes that have been compressed before
+  Bool -> -- is this the final round of compression?
+  Expr ('Arr W64) n -> -- 128 bytes of old hash value
+  Comp n ()
+compress msg count final hash = do
+  -- allocate 16 Word64 as local state
+  vs <- replicateM 16 (W64.fromWord64 minBound) >>= toArray 
 
---   -- First 8 items are copied from old hash
---   forM_ [0 .. 7] $ \j -> do
---     h <- access hash j
---     v <- access vs j
---     W64.copyTo h v
+  -- First 8 items are copied from old hash
+  forM_ [0 .. 7] $ \j -> do
+    h <- access hash j
+    update vs j h
 
---   -- Remaining 8 items are initialized from the IV
---   forM_ [8 .. 15] $ \i -> do
---     ref <- access vs i
---     writeW64 ref (iv !! i)
+  -- Remaining 8 items are initialized from the IV
+  forM_ [8 .. 15] $ \i -> do
+    -- creates a W64 from Word64s in `iv` 
+    init <- W64.fromWord64 (iv !! i)
+    update vs i init
 
---   --  Mix the 128-bit counter into V12 & V13
---   v12 <- access vs 12
---   writeW64 v12 (Int128.int128Lo64 count)
---   v13 <- access vs 13
---   writeW64 v13 (Int128.int128Hi64 count)
+  --  Mix the 128-bit counter into V12 & V13
+  v12 <- W64.fromWord64 (Int128.int128Lo64 count)
+  update vs 12 v12 
+  v13 <- W64.fromWord64 (Int128.int128Hi64 count)
+  update vs 13 v13 
 
---   -- If this is the last block then invert all the bits in V14
---   when final $ do
---     v14 <- access vs 14
---     forM_ [0 .. 63] $ \i -> do
---       var <- access v14 i
---       update v14 i (neg (var))
+  -- If this is the last block then invert all the bits in V14
+  when final $ do
+    v14 <- access vs 14
+    complemented <- W64.complement v14
+    update vs 14 complemented
 
---   -- 12 rounds of cryptographic message mixing
---   forM_ [0 .. 11] $ \i -> do
---     -- Select message mixing schedule for this round.
---     -- BLAKE2b uses 12 rounds, while 'sigma' has only 10 entries.
---     let indices = sigma !! i
---     mix vs 0 4 8 12 msg (indices !! 0) (indices !! 1)
---     mix vs 1 5 9 13 msg (indices !! 2) (indices !! 3)
---     mix vs 2 6 10 14 msg (indices !! 4) (indices !! 5)
---     mix vs 3 7 11 15 msg (indices !! 6) (indices !! 7)
---     mix vs 0 5 10 15 msg (indices !! 8) (indices !! 9)
---     mix vs 1 6 11 12 msg (indices !! 10) (indices !! 11)
---     mix vs 2 7 8 13 msg (indices !! 12) (indices !! 13)
---     mix vs 3 4 9 14 msg (indices !! 14) (indices !! 15)
+  -- 12 rounds of cryptographic message mixing
+  forM_ [0 .. 11] $ \i -> do
+    -- Select message mixing schedule for this round.
+    -- BLAKE2b uses 12 rounds, while 'sigma' has only 10 entries.
+    let indices = sigma !! i
+    mix vs 0 4 8 12 msg (indices !! 0) (indices !! 1)
+    mix vs 1 5 9 13 msg (indices !! 2) (indices !! 3)
+    mix vs 2 6 10 14 msg (indices !! 4) (indices !! 5)
+    mix vs 3 7 11 15 msg (indices !! 6) (indices !! 7)
+    mix vs 0 5 10 15 msg (indices !! 8) (indices !! 9)
+    mix vs 1 6 11 12 msg (indices !! 10) (indices !! 11)
+    mix vs 2 7 8 13 msg (indices !! 12) (indices !! 13)
+    mix vs 3 4 9 14 msg (indices !! 14) (indices !! 15)
 
---   -- Mix the upper and lower halves of `vs` into 'hash'
---   --  h0..7 ← h0..7 xor V0..7
---   forM_ [0 .. 7] $ \i -> do
---     h <- access hash i
---     v <- access vs i
---     x <- h `W64.xor` v
---     W64.copyTo x h
---   --  h0..7 ← h0..7 xor V8..15
---   forM_ [0 .. 7] $ \i -> do
---     h <- access hash i
---     v <- access vs (i + 8)
---     x <- h `W64.xor` v
---     W64.copyTo x h
+  -- Mix the upper and lower halves of `vs` into 'hash'
+  --  h0..7 ← h0..7 xor V0..7
+  forM_ [0 .. 7] $ \i -> do
+    h <- access hash i
+    v <- access vs i
+    x <- h `W64.xor` v
+    update hash i x
+  --  h0..7 ← h0..7 xor V8..15
+  forM_ [0 .. 7] $ \i -> do
+    h <- access hash i
+    v <- access vs (i + 8)
+    x <- h `W64.xor` v
+    update hash i x
 
 mix ::
   Expr ('Arr W64) n ->
