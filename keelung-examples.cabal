@@ -28,6 +28,7 @@ library
       BLAKE2b
       Tutorial
       W64
+      W8
   other-modules:
       Paths_keelung_examples
   hs-source-dirs:

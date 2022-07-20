@@ -9,12 +9,17 @@ module BLAKE2b where
 import Control.Monad
 import Data.Bits
 import Data.Int
-import Data.WideWord (Int128)
-import qualified Data.WideWord.Int128 as Int128
+-- import Data.WideWord (Int128)
+-- import qualified Data.WideWord.Int128 as Int128
+
+import Data.WideWord.Word128 (Word128)
+import qualified Data.WideWord.Word128 as Word128
 import Data.Word
 import Keelung
 import W64 (W64)
 import qualified W64
+import W8 (W8)
+import qualified W8
 
 -- | Initialization vector
 iv :: [Word64]
@@ -47,18 +52,40 @@ sigma =
     [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3]
   ]
 
--- hash :: Word64 -> Word64 -> Word64 -> Comp n (Expr 'Bool n)
--- hash msgLen keyLen hashLen = do
---   -- length of the message in bytes
---   msg <- inputArray2 (fromIntegral msgLen) 8
---   -- length of the key in bytes
---   key <- inputArray2 (fromIntegral keyLen) 8
+-- hash ::
+--   -- | Message to be hashed
+--   Expr ('Arr W8) n ->
+--   -- | Length of the message in bytes (0..2^128)
+--   Word128 ->
+--   -- | Optional 0..64 byte key
+--   Expr ('Arr W8) n ->
+--   -- | Length of optional key in bytes (0..64)
+--   Int ->
+--   -- | Desired hash length in bytes (1..64)
+--   Int ->
+--   Comp n (Expr ('Arr W64) n)
+-- hash msg msgLen key keyLen hashLen = do
+--   --  Initialize State vector h with IV
+--   hash <- mapM W64.fromWord64 iv >>= toArray
 
---   -- rub key size and desired hash length into iv0
---   let h0 = iv0 `xor` x0101kknn
+--   -- rub key size and desired hash length into hash[0]
+--   iv0 <- W64.fromWord64 (iv !! 0)
+--   spice <- W64.fromWord64 (fromIntegral x0101kknn)
+--   h0 <- iv0 `W64.xor` spice
+--   update hash 0 h0
 
---   return true
+--   let bytesRemaining =
+--         if keyLen > 0
+--           then msgLen + 128
+--           else msgLen
 
+--   forM_ [0, 128 .. bytesRemaining] $ \bytesCompressed -> do
+
+--   --  If there was a key supplied (i.e. cbKeyLen > 0)
+--   --  then pad with trailing zeros to make it 128-bytes (i.e. 16 words)
+--   --  and prepend it to the message M
+
+--   toArray []
 --   where
 --     -- from key size ('kk') and desired hash length ('nn')
 --     -- for example, if key size = 17 bytes, desired hash length = 3
@@ -67,13 +94,13 @@ sigma =
 
 compress ::
   Expr ('Arr W64) n -> -- 128 bytes of message to compress
-  Int128 -> -- count of bytes that have been compressed before
+  Word128 -> -- count of bytes that have been compressed before
   Bool -> -- is this the final round of compression?
   Expr ('Arr W64) n -> -- 128 bytes of old hash value
   Comp n ()
 compress msg count final hash = do
   -- allocate 16 Word64 as local state
-  vs <- replicateM 16 (W64.fromWord64 minBound) >>= toArray 
+  vs <- replicateM 16 (W64.fromWord64 minBound) >>= toArray
 
   -- First 8 items are copied from old hash
   forM_ [0 .. 7] $ \j -> do
@@ -82,15 +109,15 @@ compress msg count final hash = do
 
   -- Remaining 8 items are initialized from the IV
   forM_ [8 .. 15] $ \i -> do
-    -- creates a W64 from Word64s in `iv` 
+    -- creates a W64 from Word64s in `iv`
     init <- W64.fromWord64 (iv !! i)
     update vs i init
 
   --  Mix the 128-bit counter into V12 & V13
-  v12 <- W64.fromWord64 (Int128.int128Lo64 count)
-  update vs 12 v12 
-  v13 <- W64.fromWord64 (Int128.int128Hi64 count)
-  update vs 13 v13 
+  v12 <- W64.fromWord64 (Word128.word128Lo64 count)
+  update vs 12 v12
+  v13 <- W64.fromWord64 (Word128.word128Hi64 count)
+  update vs 13 v13
 
   -- If this is the last block then invert all the bits in V14
   when final $ do
