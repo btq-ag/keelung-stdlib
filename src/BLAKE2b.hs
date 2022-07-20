@@ -13,6 +13,8 @@ import Data.WideWord (Int128)
 import qualified Data.WideWord.Int128 as Int128
 import Data.Word
 import Keelung
+import W64 (W64)
+import qualified W64
 
 -- | Initialization vector
 iv :: [Word64]
@@ -77,7 +79,7 @@ sigma =
 --   forM_ [0 .. 7] $ \j -> do
 --     h <- access hash j
 --     v <- access vs j
---     copyToW64 h v
+--     W64.copyTo h v
 
 --   -- Remaining 8 items are initialized from the IV
 --   forM_ [8 .. 15] $ \i -> do
@@ -116,124 +118,87 @@ sigma =
 --   forM_ [0 .. 7] $ \i -> do
 --     h <- access hash i
 --     v <- access vs i
---     x <- h `xorW64` v
---     copyToW64 x h
+--     x <- h `W64.xor` v
+--     W64.copyTo x h
 --   --  h0..7 ← h0..7 xor V8..15
 --   forM_ [0 .. 7] $ \i -> do
 --     h <- access hash i
 --     v <- access vs (i + 8)
---     x <- h `xorW64` v
---     copyToW64 x h
+--     x <- h `W64.xor` v
+--     W64.copyTo x h
 
--- mix ::
---   Expr ('Arr W64) n ->
---   Int ->
---   Int ->
---   Int ->
---   Int ->
---   Expr ('Arr W64) n ->
---   Int ->
---   Int ->
---   Comp n ()
--- mix vs ai bi ci di msg xi yi = do
---   a <- access vs ai
---   b <- access vs bi
---   c <- access vs ci
---   d <- access vs di
+mix ::
+  Expr ('Arr W64) n ->
+  Int ->
+  Int ->
+  Int ->
+  Int ->
+  Expr ('Arr W64) n ->
+  Int ->
+  Int ->
+  Comp n ()
+mix vs ai bi ci di msg xi yi = do
+  a <- access vs ai
+  b <- access vs bi
+  c <- access vs ci
+  d <- access vs di
 
---   x <- access msg xi
---   y <- access msg yi
+  x <- access msg xi
+  y <- access msg yi
 
---   -- Va ← Va + Vb + x   (with input)
---   addW64 a b >>= addW64 x >>= copyToW64 a
---   -- Vd ← (Vd xor Va) rotateright 32
---   xorW64 d a >>= rotateW64 (-32) >>= copyToW64 d
+  -- Va ← Va + Vb + x   (with input)
+  a <- W64.add a b
+  a <- W64.add x a
+  -- Vd ← (Vd xor Va) rotateright 32
+  d <- W64.xor d a
+  d <- W64.rotate (-32) d
 
---   -- Vc ← Vc + Vd       (no input)
---   addW64 c d >>= copyToW64 c
---   -- Vb ← (Vb xor Vc) rotateright 24
---   xorW64 b c >>= rotateW64 (-24) >>= copyToW64 b
+  -- Vc ← Vc + Vd       (no input)
+  c <- W64.add c d
+  -- Vb ← (Vb xor Vc) rotateright 24
+  b <- W64.xor b c
+  b <- W64.rotate (-24) b
 
---   -- Va ← Va + Vb + y   (with input)
---   addW64 a b >>= addW64 y >>= copyToW64 a
---   -- Vd ← (Vd xor Va) rotateright 16
---   xorW64 d a >>= rotateW64 (-16) >>= copyToW64 d
+  -- Va ← Va + Vb + y   (with input)
+  a <- W64.add a b
+  a <- W64.add y a
+  -- Vd ← (Vd xor Va) rotateright 16
+  d <- W64.xor d a
+  d <- W64.rotate (-16) d
 
---   -- Vc ← Vc + Vd       (no input)
---   addW64 c d >>= copyToW64 a
---   -- Vb ← (Vb xor Vc) rotateright 63
---   xorW64 b c >>= rotateW64 (-63) >>= copyToW64 b
+  -- Vc ← Vc + Vd       (no input)
+  a <- W64.add c d
+  -- Vb ← (Vb xor Vc) rotateright 63
+  b <- W64.xor b c
+  b <- W64.rotate (-63) b
 
---   return ()
+  -- write back to `vs`
+  update vs ai a
+  update vs bi b
+  update vs ci c
+  update vs di d
 
--- -- | Write a Word64 to an array of bits
--- writeW64 :: Expr W64 n -> Word64 -> Comp n ()
--- writeW64 arr w = forM_ [0 .. 63] $ \i -> do
---   let bitValue = Val (Boolean (testBit w i))
---   update arr i bitValue
+  return ()
 
-type W64 = 'Arr 'Bool
+-- test :: Comp GF181 (Expr 'Unit GF181)
+-- test = do
+--   xs <- inputs 3
+--   ys <- inputs 3
 
--- copyToW64 :: Expr W64 n -> Expr W64 n -> Comp n ()
--- copyToW64 src tgt = forM_ [0 .. 63] $ \i -> do
---   srcBit <- access src i
---   tgtBit <- access tgt i
---   update tgt i srcBit
+--   let rotate n as = do
+--       result <- toArray (replicate 3 false)
+--       forM_ [0 .. 2] $ \i -> do
+--         x <- access as i
+--         let i' = (i - n) `mod` 3
+--         update result i' x
+--       return result
 
-fullAdder1bit :: Expr 'Bool n -> Expr 'Bool n -> Expr 'Bool n -> (Expr 'Bool n, Expr 'Bool n)
-fullAdder1bit a b carry =
-  let value = a `Xor` b `Xor` carry
-      nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
-   in (value, nextCarry)
+--   xs <- rotate 1 xs
+--   -- xs <- rotate 1 xs
 
-fullAdder :: Show n => Int -> Expr ('Arr 'Bool) n -> Expr ('Arr 'Bool) n -> Comp n (Expr ('Arr 'Bool) n)
-fullAdder width as bs = do
-  -- allocate a new array of 64 bits for the result of the addition
-  result <- toArray (replicate width false)
-  -- 1-bit full adder
-  foldM_
-    ( \carry i -> do
-        a <- access as i
-        b <- access bs i
-        let (value, nextCarry) = fullAdder1bit a b carry
-        update result i value
-        return nextCarry
-    )
-    false
-    [0 .. width - 1]
-  return result
-
-testFullAdder :: Int -> Comp GF181 (Expr 'Unit GF181)
-testFullAdder width = do
-  as <- inputs width
-  bs <- inputs width
-  cs <- inputs width
-  cs' <- fullAdder width as bs
-
-  forM_ [0 .. width - 1] $ \i -> do
-    c <- access cs i
-    c' <- access cs' i
-    assert (c' `BEq` c)
-
-  return unit
-
--- xorW64 :: Expr W64 n -> Expr W64 n -> Comp n (Expr W64 n)
--- xorW64 as bs = do
---   result <- allocArray 64
---   forM_ [0 .. 63] $ \i -> do
---     a <- access as i
---     b <- access bs i
---     update result i (a `Xor` b)
---   return result
-
--- -- | Rotates left by i bits if i is positive, or right by -i bits otherwise.
--- rotateW64 :: Int -> Expr W64 n -> Comp n (Expr W64 n)
--- rotateW64 n xs = do
---   result <- allocArray 64
---   forM_ [0 .. 63] $ \i -> do
+--   forM_ [0 .. 2] $ \i -> do
 --     x <- access xs i
---     let i' = (n - i) `mod` 64
---     update result i' (x)
---   return result
+--     y <- access ys i
+--     assert (x `BEq` y)
 
--- -- updateW64 ::
+--   return unit
