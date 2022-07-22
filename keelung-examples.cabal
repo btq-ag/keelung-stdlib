@@ -26,9 +26,11 @@ source-repository head
 library
   exposed-modules:
       BLAKE2b
+      Lib.W64
+      Lib.W8
       Tutorial
-      W64
-      W8
+      Tutorial.FullAdder
+      Tutorial.TempConv
   other-modules:
       Paths_keelung_examples
   hs-source-dirs:

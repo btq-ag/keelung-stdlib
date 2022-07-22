@@ -16,10 +16,10 @@ import Data.WideWord.Word128 (Word128)
 import qualified Data.WideWord.Word128 as Word128
 import Data.Word
 import Keelung
-import W64 (W64)
-import qualified W64
-import W8 (W8)
-import qualified W8
+import Lib.W64 (W64)
+import qualified Lib.W64 as W64
+import Lib.W8 (W8)
+import qualified Lib.W8 as W8
 
 -- | Initialization vector
 iv :: [Word64]
@@ -54,16 +54,16 @@ sigma =
 
 -- hash ::
 --   -- | Message to be hashed
---   Expr ('Arr W8) n ->
+--   Val ('Arr W8) n ->
 --   -- | Length of the message in bytes (0..2^128)
 --   Word128 ->
 --   -- | Optional 0..64 byte key
---   Expr ('Arr W8) n ->
+--   Val ('Arr W8) n ->
 --   -- | Length of optional key in bytes (0..64)
 --   Int ->
 --   -- | Desired hash length in bytes (1..64)
 --   Int ->
---   Comp n (Expr ('Arr W64) n)
+--   Comp n (Val ('Arr W64) n)
 -- hash msg msgLen key keyLen hashLen = do
 --   --  Initialize State vector h with IV
 --   hash <- mapM W64.fromWord64 iv >>= toArray
@@ -93,10 +93,10 @@ sigma =
 --     x0101kknn = 0x01010000 + (keyLen `shiftL` 8) + hashLen
 
 compress ::
-  Expr ('Arr W64) n -> -- 128 bytes of message to compress
+  Val ('Arr W64) n -> -- 128 bytes of message to compress
   Word128 -> -- count of bytes that have been compressed before
   Bool -> -- is this the final round of compression?
-  Expr ('Arr W64) n -> -- 128 bytes of old hash value
+  Val ('Arr W64) n -> -- 128 bytes of old hash value
   Comp n ()
 compress msg count final hash = do
   -- allocate 16 Word64 as local state
@@ -154,12 +154,12 @@ compress msg count final hash = do
     update hash i x
 
 mix ::
-  Expr ('Arr W64) n ->
+  Val ('Arr W64) n ->
   Int ->
   Int ->
   Int ->
   Int ->
-  Expr ('Arr W64) n ->
+  Val ('Arr W64) n ->
   Int ->
   Int ->
   Comp n ()
@@ -206,7 +206,7 @@ mix vs ai bi ci di msg xi yi = do
 
   return ()
 
--- test :: Comp GF181 (Expr 'Unit GF181)
+-- test :: Comp GF181 (Val 'Unit GF181)
 -- test = do
 --   xs <- inputs 3
 --   ys <- inputs 3
