@@ -6,6 +6,7 @@ import Control.Monad
 import Data.Bits (Bits (testBit))
 import Data.Word (Word64)
 import Keelung
+import qualified Lib.Array as Array
 
 type W64 = 'Arr 'Bool
 
@@ -34,15 +35,16 @@ xor as bs = do
   toArray bits
 
 complement :: Val W64 n -> Comp n (Val W64 n)
-complement xs = do
-  bits <- fromArray xs
-  toArray (map neg bits)
+complement = Array.map neg  
 
 -- copyTo :: Val W64 n -> Val W64 n -> Comp n ()
 -- copyTo src tgt = forM_ [0 .. 63] $ \i -> do
 --   srcBit <- access src i
 --   tgtBit <- access tgt i
 --   update tgt i srcBit
+
+equal :: Val W64 n -> Val W64 n -> Comp n (Val 'Bool n)
+equal = Array.beq 64
 
 --------------------------------------------------------------------------------
 
@@ -76,9 +78,6 @@ testFullAdder width = do
   cs <- inputs width
   cs' <- fullAdder width as bs
 
-  forM_ [0 .. width - 1] $ \i -> do
-    c <- access cs i
-    c' <- access cs' i
-    assert (c' `BEq` c)
+  Array.beq width cs cs' >>= assert 
 
   return unit
