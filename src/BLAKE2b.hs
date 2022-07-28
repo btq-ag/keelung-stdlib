@@ -16,6 +16,7 @@ import Data.WideWord.Word128 (Word128)
 import qualified Data.WideWord.Word128 as Word128
 import Data.Word
 import Keelung
+import qualified Lib.Array as Array
 import Lib.W64 (W64)
 import qualified Lib.W64 as W64
 import Lib.W8 (W8)
@@ -57,7 +58,7 @@ sigma =
 --   Val ('Arr W8) n ->
 --   -- | Length of the message in bytes (0..2^128)
 --   Word128 ->
---   -- | Optional 0..64 byte key
+--   -- | Optional key (length : 0..64 bytes)
 --   Val ('Arr W8) n ->
 --   -- | Length of optional key in bytes (0..64)
 --   Int ->
@@ -74,13 +75,16 @@ sigma =
 --   h0 <- iv0 `W64.xor` spice
 --   update hash 0 h0
 
+--   --  If there was a key supplied (i.e. `keyLen` > 0)
+--   --  then pad with trailing zeros to make it 128-bytes (i.e. 16 words)
+--   --  and prepend it to the message M
 --   let bytesRemaining =
 --         if keyLen > 0
 --           then msgLen + 128
 --           else msgLen
 
 --   forM_ [0, 128 .. bytesRemaining] $ \bytesCompressed -> do
-
+--     return ()
 --   --  If there was a key supplied (i.e. cbKeyLen > 0)
 --   --  then pad with trailing zeros to make it 128-bytes (i.e. 16 words)
 --   --  and prepend it to the message M
@@ -92,13 +96,83 @@ sigma =
 --     -- then x0101kknn = 0x010101103
 --     x0101kknn = 0x01010000 + (keyLen `shiftL` 8) + hashLen
 
+test :: Comp GF181 (Val 'Unit GF181)
+test = do
+  let message = "Hello, world!"
+
+  message' <- W8.fromString message
+  actual <-
+    run
+      message'
+      (fromIntegral (lengthOf message'))
+      512
+  expected <- toArray []
+
+  forM_ [0 .. 127] $ \i -> do
+    x <- access actual i
+    y <- access expected i
+    W64.equal x y >>= assert
+
+  return unit
+
+run ::
+  -- | Message to be hashed
+  Val ('Arr W8) n ->
+  -- | Length of the message in bytes (0..2^128)
+  Word128 ->
+  -- | Desired hash length in bytes (1..64)
+  Int ->
+  Comp n (Val ('Arr W64) n)
+run msg msgLen hashLen = do
+  --  Initialize State vector h with IV
+  hash <- mapM W64.fromWord64 iv >>= toArray
+
+  -- rub key size and desired hash length into hash[0]
+  iv0 <- W64.fromWord64 (iv !! 0)
+  spice <- W64.fromWord64 (fromIntegral x0101kknn)
+  h0 <- iv0 `W64.xor` spice
+  update hash 0 h0
+
+  -- let bytesRemaining = msgLen
+
+  -- forM_ [0, 128 .. bytesRemaining] $ \bytesCompressed -> do
+  --   return ()
+  --  If there was a key supplied (i.e. cbKeyLen > 0)
+  --  then pad with trailing zeros to make it 128-bytes (i.e. 16 words)
+  --  and prepend it to the message M
+
+  let bytesCompressed = 0
+
+  --  Compress the final bytes
+
+  chunk <- pad msg 128
+  compress hash chunk bytesCompressed True
+
+  return hash
+  where
+    -- from key size ('kk') and desired hash length ('nn')
+    -- for example, if key size = 17 bytes, desired hash length = 3
+    -- then x0101kknn = 0x010101103
+    x0101kknn :: Int
+    x0101kknn = 0x01010000 + (0 `shiftL` 8) + hashLen
+
+-- | Padding a message with `false` to the desired length
+pad :: Val ('Arr W8) n -> Int -> Comp n (Val ('Arr W8) n)
+pad xs len =
+  let len' = lengthOf xs
+   in if len' >= len
+        then return xs
+        else do
+          xs' <- W8.fromString (replicate (len - len') ' ')
+          Array.concatenate xs xs'
+
 compress ::
+  Val ('Arr W64) n -> -- 128 bytes of old hash value
   Val ('Arr W64) n -> -- 128 bytes of message to compress
   Word128 -> -- count of bytes that have been compressed before
   Bool -> -- is this the final round of compression?
-  Val ('Arr W64) n -> -- 128 bytes of old hash value
   Comp n ()
-compress msg count final hash = do
+compress hash msg count final = do
   -- allocate 16 Word64 as local state
   vs <- replicateM 16 (W64.fromWord64 minBound) >>= toArray
 
