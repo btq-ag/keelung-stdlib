@@ -23,6 +23,7 @@ dependencies:
 - base >= 4.7 && < 5
 - keelung 
 - wide-word
+- galois-field
 
 library:
   source-dirs: src
