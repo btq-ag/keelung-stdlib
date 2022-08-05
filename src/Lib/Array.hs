@@ -12,7 +12,7 @@ beq width as bs =
     ( \acc i -> do
         a <- access as i
         b <- access bs i
-        return (a `BEq` b)
+        return (acc `And` (a `BEq` b))
     )
     true
     [0 .. width - 1]
