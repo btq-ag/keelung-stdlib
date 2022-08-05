@@ -7,15 +7,21 @@ import Data.Bits (Bits (testBit))
 import Data.Word (Word64)
 import Keelung
 import qualified Lib.Array as Array
+import Numeric (readHex)
 
 type W64 = 'Arr 'Bool
 
 fromWord64 :: Word64 -> Comp n (Val W64 n)
 fromWord64 word = toArray $ map (Boolean . testBit word) [0 .. 63]
 
--- | Rotates left by i bits if i is positive, or right by -i bits otherwise.
-rotate :: Int -> Val W64 n -> Comp n (Val W64 n)
-rotate n xs = do
+fromHex :: String -> Comp n (Val W64 n)
+fromHex xs = case readHex xs of
+    (x,_):_ -> fromWord64 x
+    _       -> fromWord64 0
+
+-- | Rotates right by i bits if i is positive, or right by -i bits otherwise.
+rotateRight :: Int -> Val W64 n -> Comp n (Val W64 n)
+rotateRight n xs = do
   result <- toArray (replicate 64 false)
   forM_ [0 .. 63] $ \i -> do
     x <- access xs i
@@ -35,7 +41,7 @@ xor as bs = do
   toArray bits
 
 complement :: Val W64 n -> Comp n (Val W64 n)
-complement = Array.map neg  
+complement = Array.map neg
 
 -- copyTo :: Val W64 n -> Val W64 n -> Comp n ()
 -- copyTo src tgt = forM_ [0 .. 63] $ \i -> do
@@ -78,6 +84,6 @@ testFullAdder width = do
   cs <- inputs width
   cs' <- fullAdder width as bs
 
-  Array.beq width cs cs' >>= assert 
+  Array.beq width cs cs' >>= assert
 
   return unit
