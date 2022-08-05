@@ -99,16 +99,18 @@ sigma =
 test :: Comp GF181 (Val 'Unit GF181)
 test = do
   let message = "Hello, world!"
-
   message' <- W8.fromString message
   actual <-
     run
       message'
       (fromIntegral (lengthOf message'))
-      512
+      64 -- desired hash length in bytes
+
+  -- we don't know the hash of the message yet  
   expected <- toArray []
 
-  forM_ [0 .. 127] $ \i -> do
+  -- iterate through 8 W64s and see if they are the same
+  forM_ [0 .. 7] $ \i -> do
     x <- access actual i
     y <- access expected i
     W64.equal x y >>= assert
@@ -184,7 +186,7 @@ compress hash msg count final = do
   -- Remaining 8 items are initialized from the IV
   forM_ [8 .. 15] $ \i -> do
     -- creates a W64 from Word64s in `iv`
-    init <- W64.fromWord64 (iv !! i)
+    init <- W64.fromWord64 (iv !! (i - 8))
     update vs i init
 
   --  Mix the 128-bit counter into V12 & V13
