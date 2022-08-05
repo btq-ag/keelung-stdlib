@@ -12,7 +12,7 @@ beq width as bs =
     ( \acc i -> do
         a <- access as i
         b <- access bs i
-        return (a `BEq` b)
+        return $ acc `And` (a `BEq` b)
     )
     true
     [0 .. width - 1]
@@ -23,9 +23,9 @@ map f xs = do
   xs' <- fromArray xs
   toArray (Prelude.map f xs')
 
--- | Array concatenation 
+-- | Array concatenation
 concatenate :: Referable a => Val ('Arr a) n -> Val ('Arr a) n -> Comp n (Val ('Arr a) n)
-concatenate xs ys = do 
+concatenate xs ys = do
   xs' <- fromArray xs
   ys' <- fromArray ys
   toArray (xs' <> ys')

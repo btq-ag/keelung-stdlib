@@ -21,6 +21,10 @@ import Lib.W64 (W64)
 import qualified Lib.W64 as W64
 import Lib.W8 (W8)
 import qualified Lib.W8 as W8
+import Data.Char
+import Debug.Trace
+import Lib.Array (beq)
+import qualified GHC.Generics as W8
 
 -- | Initialization vector
 iv :: [Word64]
@@ -52,6 +56,22 @@ sigma =
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
     [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3]
   ]
+
+-- n 個為一組
+chunks :: Int -> [a] -> [[a]]
+chunks _ [] = []
+chunks n xs =
+    let (ys, zs) = splitAt n xs
+    in  ys : chunks n zs
+
+-- 假設 len w8s 為 8 的倍數
+w8tow64 :: Val ('Arr W8) n -> Comp n (Val ('Arr W64) n)
+w8tow64 w8s = do
+  w8s' <- fromArray w8s
+  w8s'' <- mapM fromArray w8s'
+  let w64s'' = chunks 64 (concat w8s'')
+  w64s' <- mapM toArray w64s''
+  toArray w64s'
 
 -- hash ::
 --   -- | Message to be hashed
@@ -98,20 +118,20 @@ sigma =
 
 test :: Comp GF181 (Val 'Unit GF181)
 test = do
-  let message = "Hello, world!"
+  let message = "abc"
 
   message' <- W8.fromString message
   actual <-
     run
       message'
       (fromIntegral (lengthOf message'))
-      512
-  expected <- toArray []
+      64
+  -- expected <- toArray []
 
-  forM_ [0 .. 127] $ \i -> do
-    x <- access actual i
-    y <- access expected i
-    W64.equal x y >>= assert
+  -- forM_ [0 .. 127] $ \i -> do
+  --   x <- access actual i
+  --   y <- access expected i
+  --   W64.equal x y >>= assert
 
   return unit
 
@@ -133,6 +153,10 @@ run msg msgLen hashLen = do
   h0 <- iv0 `W64.xor` spice
   update hash 0 h0
 
+  -- ref <- W64.fromHex "6A09E667F2BDC948"
+  -- pred <- h0 `W64.equal` ref
+  -- assert pred
+
   -- let bytesRemaining = msgLen
 
   -- forM_ [0, 128 .. bytesRemaining] $ \bytesCompressed -> do
@@ -146,7 +170,7 @@ run msg msgLen hashLen = do
   --  Compress the final bytes
 
   chunk <- pad msg 128
-  compress hash chunk bytesCompressed True
+  compress hash chunk 3 True
 
   return hash
   where
@@ -163,7 +187,7 @@ pad xs len =
    in if len' >= len
         then return xs
         else do
-          xs' <- W8.fromString (replicate (len - len') ' ')
+          xs' <- W8.fromString (replicate (len - len') (chr 0))
           Array.concatenate xs xs'
 
 compress ::
@@ -184,13 +208,15 @@ compress hash msg count final = do
   -- Remaining 8 items are initialized from the IV
   forM_ [8 .. 15] $ \i -> do
     -- creates a W64 from Word64s in `iv`
-    init <- W64.fromWord64 (iv !! i)
+    init <- W64.fromWord64 (iv !! (i-8))
     update vs i init
 
   --  Mix the 128-bit counter into V12 & V13
-  v12 <- W64.fromWord64 (Word128.word128Lo64 count)
+  v12 <- access vs 12
+  v12 <- W64.fromWord64 (Word128.word128Lo64 count) >>= (v12 `W64.xor`)
   update vs 12 v12
-  v13 <- W64.fromWord64 (Word128.word128Hi64 count)
+  v13 <- access vs 13
+  v13 <- W64.fromWord64 (Word128.word128Hi64 count)  >>= (v13 `W64.xor`)
   update vs 13 v13
 
   -- If this is the last block then invert all the bits in V14
@@ -199,8 +225,14 @@ compress hash msg count final = do
     complemented <- W64.complement v14
     update vs 14 complemented
 
+  msg <- w8tow64 msg
+
+  -- ref <- W64.fromHex "6a09e667f2bdc948"
+  -- pred <- access hash 0 >>= W64.equal ref
+  -- assert pred
+
   -- 12 rounds of cryptographic message mixing
-  forM_ [0 .. 11] $ \i -> do
+  forM_ [0 .. 3] $ \i -> do
     -- Select message mixing schedule for this round.
     -- BLAKE2b uses 12 rounds, while 'sigma' has only 10 entries.
     let indices = sigma !! i
@@ -212,6 +244,16 @@ compress hash msg count final = do
     mix vs 1 6 11 12 msg (indices !! 10) (indices !! 11)
     mix vs 2 7 8 13 msg (indices !! 12) (indices !! 13)
     mix vs 3 4 9 14 msg (indices !! 14) (indices !! 15)
+
+  -- OK only when [0..3]
+  ref <- W64.fromHex "6a09e667f2bdc948"
+  pred <- access hash 0 >>= W64.equal ref
+  assert pred
+
+  -- OK when [0..11]
+  -- ref <- W64.fromHex "12EF8A641EC4F6D6"
+  -- pred <- access vs 0 >>= W64.equal ref
+  -- assert pred
 
   -- Mix the upper and lower halves of `vs` into 'hash'
   --  h0..7 ← h0..7 xor V0..7
@@ -251,26 +293,23 @@ mix vs ai bi ci di msg xi yi = do
   a <- W64.add x a
   -- Vd ← (Vd xor Va) rotateright 32
   d <- W64.xor d a
-  d <- W64.rotate (-32) d
-
+  d <- W64.rotateRight 32 d
   -- Vc ← Vc + Vd       (no input)
   c <- W64.add c d
   -- Vb ← (Vb xor Vc) rotateright 24
   b <- W64.xor b c
-  b <- W64.rotate (-24) b
-
+  b <- W64.rotateRight 24 b
   -- Va ← Va + Vb + y   (with input)
   a <- W64.add a b
   a <- W64.add y a
   -- Vd ← (Vd xor Va) rotateright 16
   d <- W64.xor d a
-  d <- W64.rotate (-16) d
-
+  d <- W64.rotateRight 16 d
   -- Vc ← Vc + Vd       (no input)
-  a <- W64.add c d
+  c <- W64.add c d
   -- Vb ← (Vb xor Vc) rotateright 63
   b <- W64.xor b c
-  b <- W64.rotate (-63) b
+  b <- W64.rotateRight 63 b
 
   -- write back to `vs`
   update vs ai a
