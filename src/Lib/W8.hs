@@ -12,7 +12,7 @@ type W8 = 'Arr 'Bool
 
 -- | Construct a W8 from a Word8
 fromWord8 :: Word8 -> Comp n (Val W8 n)
-fromWord8 word = toArray $ Prelude.map (Boolean . testBit word) [0 .. 8]
+fromWord8 word = toArray $ Prelude.map (Boolean . testBit word) [0 .. 7]
 
 -- | Construct a W8 from a Char
 fromChar :: Char -> Comp n (Val W8 n)
