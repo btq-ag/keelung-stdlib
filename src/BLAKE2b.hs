@@ -172,6 +172,10 @@ run msg msgLen hashLen = do
   chunk <- pad msg 128
   compress hash chunk 3 True
 
+  ref <- W64.fromWord64 0x0D4D1C983FA580BA
+  pred <- access hash 0 >>= W64.equal ref
+  assert pred
+
   return hash
   where
     -- from key size ('kk') and desired hash length ('nn')
@@ -232,7 +236,7 @@ compress hash msg count final = do
   -- assert pred
 
   -- 12 rounds of cryptographic message mixing
-  forM_ [0 .. 3] $ \i -> do
+  forM_ [0 .. 11] $ \i -> do
     -- Select message mixing schedule for this round.
     -- BLAKE2b uses 12 rounds, while 'sigma' has only 10 entries.
     let indices = sigma !! i
@@ -244,16 +248,6 @@ compress hash msg count final = do
     mix vs 1 6 11 12 msg (indices !! 10) (indices !! 11)
     mix vs 2 7 8 13 msg (indices !! 12) (indices !! 13)
     mix vs 3 4 9 14 msg (indices !! 14) (indices !! 15)
-
-  -- OK only when [0..3]
-  ref <- W64.fromHex "6a09e667f2bdc948"
-  pred <- access hash 0 >>= W64.equal ref
-  assert pred
-
-  -- OK when [0..11]
-  -- ref <- W64.fromHex "12EF8A641EC4F6D6"
-  -- pred <- access vs 0 >>= W64.equal ref
-  -- assert pred
 
   -- Mix the upper and lower halves of `vs` into 'hash'
   --  h0..7 ← h0..7 xor V0..7
