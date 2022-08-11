@@ -6,7 +6,7 @@ import Control.Monad
 import Data.Bits (Bits (testBit))
 import Data.Word (Word8)
 import Keelung
-import qualified Lib.Array as Array
+import qualified Lib.Array as Arr
 import Numeric (readHex)
 
 type W8 = 'Arr 'Bool
@@ -25,9 +25,10 @@ fromString xs = mapM fromChar xs >>= toArray
 
 -- | Equality on W8
 equal :: Val W8 n -> Val W8 n -> Comp n (Val 'Bool n)
-equal = Array.beq 8
+equal = Arr.beq 8
 
-fromHex :: String -> Comp n (Val W8 n)
-fromHex xs = case readHex xs of
-    (x,_):_ -> fromWord8 x
-    _       -> fromWord8 0
+zero :: Comp n (Val W8 n)
+zero = Arr.zeroBits 8
+
+zeros :: Int -> Comp n (Val ('Arr W8) n)
+zeros n = zero >>= Arr.replicate n

@@ -19,9 +19,11 @@ module Lib.Array
     Lib.Array.or,
     Lib.Array.and,
     Lib.Array.xor,
+    Lib.Array.xorOld,
     flatten,
     cast,
     chunks,
+    fullAdder
   )
 where
 
@@ -161,3 +163,53 @@ chunks n xs = fromArray xs >>= f
                 join $ cons <$> toArray xs1 <*> f xs2
               | size == n -> singleton =<< toArray xs
               | otherwise -> singleton =<< cast' n xs
+
+
+--------------------------------------------------------------------------------
+
+fullAdder1bit :: Val 'Bool n -> Val 'Bool n -> Val 'Bool n -> (Val 'Bool n, Val 'Bool n)
+fullAdder1bit a b carry =
+  let value = a `Xor` b `Xor` carry
+      nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
+   in (value, nextCarry)
+
+fullAdder :: Int -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+fullAdder width as bs = do
+  -- allocate a new array of 64 bits for the result of the addition
+  result <- zeroBits width
+  -- 1-bit full adder
+  foldM_
+    ( \carry i -> do
+        a <- access as i
+        b <- access bs i
+        let (value, nextCarry) = fullAdder1bit a b carry
+        update result i value
+        return nextCarry
+    )
+    false
+    [0 .. width - 1]
+  return result
+
+testFullAdder :: Int -> Comp GF181 (Val 'Unit GF181)
+testFullAdder width = do
+  as <- inputs width
+  bs <- inputs width
+  cs <- inputs width
+  cs' <- fullAdder width as bs
+
+  beq width cs cs' >>= assert
+
+  return unit
+
+-----------
+
+xorOld :: Int -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+xorOld = bitOpOld Xor
+
+bitOpOld :: (Val 'Bool n -> Val 'Bool n -> Val 'Bool n) -> Int -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+bitOpOld op l as bs = do
+  bits <- forM [0 .. (l - 1)] $ \i -> do
+    a <- access as i
+    b <- access bs i
+    return (a `op` b)
+  toArray bits

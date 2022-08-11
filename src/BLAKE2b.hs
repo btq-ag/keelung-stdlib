@@ -124,7 +124,7 @@ test = do
   actual <-
     run
       message'
-      (fromIntegral (lengthOf message'))
+      (fromIntegral (length message))
       64
   -- expected <- toArray []
 
@@ -173,8 +173,7 @@ run msg msgLen hashLen = do
   compress hash chunk 3 True
 
   ref <- W64.fromWord64 0x0D4D1C983FA580BA
-  pred <- access hash 0 >>= W64.equal ref
-  assert pred
+  assert =<< W64.equal ref =<< access hash 0
 
   return hash
   where
@@ -191,7 +190,7 @@ pad xs len =
    in if len' >= len
         then return xs
         else do
-          xs' <- W8.fromString (replicate (len - len') (chr 0))
+          xs' <- W8.zeros (len - len')
           Array.concatenate xs xs'
 
 compress ::
@@ -202,12 +201,11 @@ compress ::
   Comp n ()
 compress hash msg count final = do
   -- allocate 16 Word64 as local state
-  vs <- replicateM 16 (W64.fromWord64 minBound) >>= toArray
+  vs <- W64.zeros 16
 
   -- First 8 items are copied from old hash
   forM_ [0 .. 7] $ \j -> do
-    h <- access hash j
-    update vs j h
+    update vs j =<< access hash j
 
   -- Remaining 8 items are initialized from the IV
   forM_ [8 .. 15] $ \i -> do
@@ -225,11 +223,10 @@ compress hash msg count final = do
 
   -- If this is the last block then invert all the bits in V14
   when final $ do
-    v14 <- access vs 14
-    complemented <- W64.complement v14
-    update vs 14 complemented
+    update vs 14 =<< W64.complement =<< access vs 14
 
-  msg <- w8tow64 msg
+  -- msg <- w8tow64 msg
+  msg <- W64.fromW8Chunks msg
 
   -- ref <- W64.fromHex "6a09e667f2bdc948"
   -- pred <- access hash 0 >>= W64.equal ref
@@ -252,10 +249,12 @@ compress hash msg count final = do
   -- Mix the upper and lower halves of `vs` into 'hash'
   --  h0..7 ← h0..7 xor V0..7
   forM_ [0 .. 7] $ \i -> do
+    -- update hash i =<< join (W64.xor <$> access hash i <*> access vs i)
     h <- access hash i
     v <- access vs i
     x <- h `W64.xor` v
     update hash i x
+
   --  h0..7 ← h0..7 xor V8..15
   forM_ [0 .. 7] $ \i -> do
     h <- access hash i
@@ -287,23 +286,23 @@ mix vs ai bi ci di msg xi yi = do
   a <- W64.add x a
   -- Vd ← (Vd xor Va) rotateright 32
   d <- W64.xor d a
-  d <- W64.rotateRight 32 d
+  d <- W64.rotateR 32 d
   -- Vc ← Vc + Vd       (no input)
   c <- W64.add c d
   -- Vb ← (Vb xor Vc) rotateright 24
   b <- W64.xor b c
-  b <- W64.rotateRight 24 b
+  b <- W64.rotateR 24 b
   -- Va ← Va + Vb + y   (with input)
   a <- W64.add a b
   a <- W64.add y a
   -- Vd ← (Vd xor Va) rotateright 16
   d <- W64.xor d a
-  d <- W64.rotateRight 16 d
+  d <- W64.rotateR 16 d
   -- Vc ← Vc + Vd       (no input)
   c <- W64.add c d
   -- Vb ← (Vb xor Vc) rotateright 63
   b <- W64.xor b c
-  b <- W64.rotateRight 63 b
+  b <- W64.rotateR 63 b
 
   -- write back to `vs`
   update vs ai a
