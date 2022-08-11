@@ -108,12 +108,35 @@ bitOp op l as bs = do
     return (a `op` b)
   toArray bits
 
+or' :: Int -> Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n)
+or' = bitOp' Or
+
+and' :: Int -> Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n)
+and' = bitOp' And
+
+xor' :: Int -> Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n)
+xor' = bitOp' Xor
+
+bitOp' ::
+  (Val 'Bool n -> Val 'Bool n -> Val 'Bool n) ->
+  Int ->
+  Comp n (Val ('Arr 'Bool) n) ->
+  Comp n (Val ('Arr 'Bool) n) ->
+  Comp n (Val ('Arr 'Bool) n)
+bitOp' op l as bs = do
+  bits <- forM [0 .. (l - 1)] $ \i -> do
+    a <- as >>= \s -> access s i
+    b <- bs >>= \s -> access s i
+    return (a `op` b)
+  toArray bits
+
 flatten :: Referable t => Val ('Arr ('Arr t)) n -> Comp n (Val ('Arr t) n)
 flatten = fromArray >=> foldM (\ys x -> (ys <>) <$> fromArray x) [] >=> toArray
 
 cast :: Int -> Val ('Arr 'Bool) n -> Comp n (Val (Arr 'Bool) n)
 cast n xs = fromArray xs >>= cast' n
 
+-- | length xs < n
 cast' :: Int -> [Val 'Bool n] -> Comp n (Val (Arr 'Bool) n)
 cast' n xs = do
   result <- zeroBits n
