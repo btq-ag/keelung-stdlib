@@ -132,10 +132,7 @@ cast n xs = fromArray xs >>= cast' n
 
 -- | length xs < n
 cast' :: Int -> [Val 'Bool n] -> Comp n (Val (Arr 'Bool) n)
-cast' n xs = do
-  result <- zeroBits n
-  forM_ (zip [0 .. length xs] xs) $ uncurry (update result)
-  return result
+cast' n xs = toArray $ xs ++ Prelude.replicate (n - length xs) false
 
 chunks :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr ('Arr 'Bool)) n)
 chunks n xs = fromArray xs >>= f
