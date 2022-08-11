@@ -74,9 +74,9 @@ zeroBits n = Lib.Array.replicate n false
 rotate :: Int -> Val ('Arr 'Bool) n -> Int -> Comp n (Val ('Arr 'Bool) n)
 rotate n xs l = do
   result <- Lib.Array.replicate l false
-  forM_ [0 .. (l - 1)] $ \i -> do
+  forM_ [0 .. l - 1] $ \i -> do
     x <- access xs i
-    let i' = (i - n) `mod` l
+    let i' = (i + n) `mod` l
     update result i' x
   return result
 
@@ -86,9 +86,9 @@ shift n l xs = do
   result <- Lib.Array.replicate l false
   let rng =
         if n >= 0
-          then [n .. (l - 1)]
-          else [0 .. (l - 1 + n)]
-  forM_ rng $ \i -> access xs i >>= update result (i - n)
+          then [0 .. n - 1]
+          else [-n .. l - 1]
+  forM_ rng $ \i -> access xs i >>= update result (i + n)
   return result
 
 or :: Int -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
@@ -140,8 +140,7 @@ cast n xs = fromArray xs >>= cast' n
 cast' :: Int -> [Val 'Bool n] -> Comp n (Val (Arr 'Bool) n)
 cast' n xs = do
   result <- zeroBits n
-  forM_ (zip [n - length xs .. n - 1] xs) $ \(i, x) -> do
-    update result i x
+  forM_ (zip [0 .. length xs] xs) $ uncurry (update result)
   return result
 
 chunks :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr ('Arr 'Bool)) n)
@@ -152,8 +151,7 @@ chunks n xs = fromArray xs >>= f
       let size = length xs
        in if
               | size > n -> do
-                let (xs1, xs2) = splitAt (size - n) xs
-                xs' <- join $ cons <$> toArray xs2 <*> f xs1
-                Lib.Array.reverse xs'
+                let (xs1, xs2) = splitAt n xs
+                join $ cons <$> toArray xs1 <*> f xs2
               | size == n -> singleton =<< toArray xs
               | otherwise -> singleton =<< cast' n xs
