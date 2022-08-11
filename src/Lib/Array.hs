@@ -71,8 +71,8 @@ zeroBits :: Int -> Comp n (Val ('Arr 'Bool) n)
 zeroBits n = Lib.Array.replicate n false
 
 -- | Rotate left by i bits if i is positive, or right by -i bits otherwise
-rotate :: Int -> Val ('Arr 'Bool) n -> Int -> Comp n (Val ('Arr 'Bool) n)
-rotate n xs l = do
+rotate :: Int -> Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+rotate l n xs = do
   result <- Lib.Array.replicate l false
   forM_ [0 .. l - 1] $ \i -> do
     x <- access xs i
@@ -82,7 +82,7 @@ rotate n xs l = do
 
 -- | Shift left by i bits if i is positive, or right by -i bits otherwise
 shift :: Int -> Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
-shift n l xs = do
+shift l n xs = do
   result <- Lib.Array.replicate l false
   let rng =
         if n >= 0
