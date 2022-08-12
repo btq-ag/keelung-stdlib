@@ -12,8 +12,10 @@ module Lib.Array
     Lib.Array.reverse,
     Lib.Array.replicate,
     zeroBits,
-    rotate,
-    shift,
+    rotateL,
+    rotateR,
+    shiftL,
+    shiftR,
     Lib.Array.or,
     Lib.Array.and,
     Lib.Array.xor,
@@ -24,6 +26,7 @@ module Lib.Array
 where
 
 import Control.Monad
+import Numeric.Natural
 import Keelung
 
 -- | See if 2 bit arrays of length `width` are equal.
@@ -81,6 +84,12 @@ rotate n xs = do
     update result i' x
   return result
 
+rotateL :: Natural -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+rotateL = rotate . fromIntegral
+
+rotateR :: Natural -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+rotateR = rotate . negate . fromIntegral
+
 -- | Shift left by i bits if i is positive, or right by -i bits otherwise
 shift :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 shift n xs = do
@@ -93,6 +102,12 @@ shift n xs = do
           else [-n .. l - 1]
   forM_ (zip rng xs') $ \(i, x) -> update result (i + n) x
   return result
+
+shiftL :: Natural -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+shiftL = shift . fromIntegral
+
+shiftR :: Natural -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+shiftR = shift . negate . fromIntegral
 
 or :: Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 or = bitOp Or
