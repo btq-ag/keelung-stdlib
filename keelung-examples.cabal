@@ -27,6 +27,7 @@ library
   exposed-modules:
       BLAKE2b
       Lib.Array
+      Lib.W32
       Lib.W64
       Lib.W8
       Practice
