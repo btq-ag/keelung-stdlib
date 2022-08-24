@@ -65,3 +65,13 @@ summation = do
   reduce 0 [0 .. 9] $ \acc i -> do
     x <- access xs i
     return $ acc + x
+
+returnArray :: Comp GF181 (Val ('Arr 'Num) GF181)
+returnArray = do 
+  x <- input 
+  toArray [x, x, x, x]
+
+-- returnArray :: Comp GF181 (Val ('Arr 'Num) GF181)
+-- returnArray = do 
+--   x <- input 
+--   toArray [x, 2 * x]

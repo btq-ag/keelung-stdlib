@@ -25,3 +25,17 @@ fromString xs = mapM fromChar xs >>= toArray
 -- | Equality on W8 
 equal :: Val W8 n -> Val W8 n -> Comp n (Val 'Bool n)
 equal = Array.beq 8
+
+----
+
+-- | `fromWord8` implemented with immutable arrays
+fromWord8' :: Word8 -> Val W8 n
+fromWord8' word = toArrayI $ Prelude.map (Boolean . testBit word) [0 .. 7]
+
+-- | `fromChar` implemented with immutable arrays
+fromChar' :: Char -> Val W8 n
+fromChar' = fromWord8' . toEnum . fromEnum
+
+-- | `fromString` implemented with immutable arrays
+fromString' :: String -> Val ('Arr W8) n
+fromString' = toArrayI . map fromChar'
