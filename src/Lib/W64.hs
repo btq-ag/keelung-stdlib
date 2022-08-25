@@ -39,6 +39,8 @@ complement = Arr.map neg
 equal :: Val W64 n -> Val W64 n -> Comp n (Val 'Bool n)
 equal = Arr.beq 64
 
--- ! wrong
 fromW8Chunks :: Val ('Arr W8) n -> Comp n (Val ('Arr W64) n)
 fromW8Chunks = Arr.flatten >=> Arr.chunks 64
+
+toW8Chunks :: Val ('Arr W64) n -> Comp n (Val ('Arr W8) n)
+toW8Chunks = Arr.flatten >=> Arr.chunks 8

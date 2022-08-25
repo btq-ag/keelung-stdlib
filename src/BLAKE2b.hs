@@ -25,6 +25,8 @@ import Data.Char
 import Debug.Trace
 import Lib.Array (beq)
 import qualified GHC.Generics as W8
+import qualified Crypto.Hash.BLAKE2.BLAKE2b
+import qualified Data.ByteString.Char8 as ByteString.Char8
 
 -- | Initialization vector
 iv :: [Word64]
@@ -57,81 +59,27 @@ sigma =
     [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3]
   ]
 
--- n 個為一組
-chunks :: Int -> [a] -> [[a]]
-chunks _ [] = []
-chunks n xs =
-    let (ys, zs) = splitAt n xs
-    in  ys : chunks n zs
-
--- 假設 len w8s 為 8 的倍數
-w8tow64 :: Val ('Arr W8) n -> Comp n (Val ('Arr W64) n)
-w8tow64 w8s = do
-  w8s' <- fromArray w8s
-  w8s'' <- mapM fromArray w8s'
-  let w64s'' = chunks 64 (concat w8s'')
-  w64s' <- mapM toArray w64s''
-  toArray w64s'
-
--- hash ::
---   -- | Message to be hashed
---   Val ('Arr W8) n ->
---   -- | Length of the message in bytes (0..2^128)
---   Word128 ->
---   -- | Optional key (length : 0..64 bytes)
---   Val ('Arr W8) n ->
---   -- | Length of optional key in bytes (0..64)
---   Int ->
---   -- | Desired hash length in bytes (1..64)
---   Int ->
---   Comp n (Val ('Arr W64) n)
--- hash msg msgLen key keyLen hashLen = do
---   --  Initialize State vector h with IV
---   hash <- mapM W64.fromWord64 iv >>= toArray
-
---   -- rub key size and desired hash length into hash[0]
---   iv0 <- W64.fromWord64 (iv !! 0)
---   spice <- W64.fromWord64 (fromIntegral x0101kknn)
---   h0 <- iv0 `W64.xor` spice
---   update hash 0 h0
-
---   --  If there was a key supplied (i.e. `keyLen` > 0)
---   --  then pad with trailing zeros to make it 128-bytes (i.e. 16 words)
---   --  and prepend it to the message M
---   let bytesRemaining =
---         if keyLen > 0
---           then msgLen + 128
---           else msgLen
-
---   forM_ [0, 128 .. bytesRemaining] $ \bytesCompressed -> do
---     return ()
---   --  If there was a key supplied (i.e. cbKeyLen > 0)
---   --  then pad with trailing zeros to make it 128-bytes (i.e. 16 words)
---   --  and prepend it to the message M
-
---   toArray []
---   where
---     -- from key size ('kk') and desired hash length ('nn')
---     -- for example, if key size = 17 bytes, desired hash length = 3
---     -- then x0101kknn = 0x010101103
---     x0101kknn = 0x01010000 + (keyLen `shiftL` 8) + hashLen
-
 test :: Comp GF181 (Val 'Unit GF181)
 test = do
   let message = "abc"
+  let hashlen = 64 -- must <= 64
 
   message' <- W8.fromString message
-  actual <-
+  result <-
     run
       message'
       (fromIntegral (length message))
-      64
-  -- expected <- toArray []
+      hashlen
 
-  -- forM_ [0 .. 127] $ \i -> do
-  --   x <- access actual i
-  --   y <- access expected i
-  --   W64.equal x y >>= assert
+  let msgBS = ByteString.Char8.pack message
+  let ansBS = Crypto.Hash.BLAKE2.BLAKE2b.hash hashlen ByteString.Char8.empty msgBS
+
+  ans <- W8.fromString (ByteString.Char8.unpack ansBS)
+
+  forM_ [0 .. hashlen - 1] $ \i -> do
+    x <- access result i
+    y <- access ans i
+    W8.equal x y >>= assert
 
   return unit
 
@@ -142,7 +90,7 @@ run ::
   Word128 ->
   -- | Desired hash length in bytes (1..64)
   Int ->
-  Comp n (Val ('Arr W64) n)
+  Comp n (Val ('Arr W8) n)
 run msg msgLen hashLen = do
   --  Initialize State vector h with IV
   hash <- mapM W64.fromWord64 iv >>= toArray
@@ -168,14 +116,14 @@ run msg msgLen hashLen = do
   let bytesCompressed = 0
 
   --  Compress the final bytes
-
   chunk <- pad msg 128
-  compress hash chunk 3 True
+  compress hash chunk (msgLen `mod` 128) True
 
-  ref <- W64.fromWord64 0x0D4D1C983FA580BA
-  assert =<< W64.equal ref =<< access hash 0
+  -- ref <- W64.fromWord64 0x0D4D1C983FA580BA
+  -- assert =<< W64.equal ref =<< access hash 0
 
-  return hash
+  Array.take hashLen =<< W64.toW8Chunks hash
+
   where
     -- from key size ('kk') and desired hash length ('nn')
     -- for example, if key size = 17 bytes, desired hash length = 3
@@ -225,7 +173,6 @@ compress hash msg count final = do
   when final $ do
     update vs 14 =<< W64.complement =<< access vs 14
 
-  -- msg <- w8tow64 msg
   msg <- W64.fromW8Chunks msg
 
   -- ref <- W64.fromHex "6a09e667f2bdc948"
@@ -311,26 +258,3 @@ mix vs ai bi ci di msg xi yi = do
   update vs di d
 
   return ()
-
--- test :: Comp GF181 (Val 'Unit GF181)
--- test = do
---   xs <- inputs 3
---   ys <- inputs 3
-
---   let rotate n as = do
---       result <- toArray (replicate 3 false)
---       forM_ [0 .. 2] $ \i -> do
---         x <- access as i
---         let i' = (i - n) `mod` 3
---         update result i' x
---       return result
-
---   xs <- rotate 1 xs
---   -- xs <- rotate 1 xs
-
---   forM_ [0 .. 2] $ \i -> do
---     x <- access xs i
---     y <- access ys i
---     assert (x `BEq` y)
-
---   return unit

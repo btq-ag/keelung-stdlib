@@ -11,6 +11,7 @@ module Lib.Array
     singleton,
     Lib.Array.reverse,
     Lib.Array.replicate,
+    Lib.Array.take,
     zeroBits,
     rotateL,
     rotateR,
@@ -71,6 +72,11 @@ reverse xs = do
 
 replicate :: Referable t => Int -> Val t n -> Comp n (Val ('Arr t) n)
 replicate n x = toArray $ Prelude.replicate n x
+
+take :: Referable a => Int -> Val ('Arr a) n -> Comp n (Val ('Arr a) n)
+take n xs = do
+  xs' <- fromArray xs
+  toArray (Prelude.take n xs')
 
 zeroBits :: Int -> Comp n (Val ('Arr 'Bool) n)
 zeroBits n = Lib.Array.replicate n false
