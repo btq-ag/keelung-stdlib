@@ -12,6 +12,7 @@ module Lib.Array
     Lib.Array.reverse,
     Lib.Array.replicate,
     Lib.Array.take,
+    Lib.Array.drop,
     zeroBits,
     rotateL,
     rotateR,
@@ -77,6 +78,12 @@ take :: Referable a => Int -> Val ('Arr a) n -> Comp n (Val ('Arr a) n)
 take n xs = do
   xs' <- fromArray xs
   toArray (Prelude.take n xs')
+
+drop :: Referable a => Int -> Val ('Arr a) n -> Comp n (Val ('Arr a) n)
+drop n xs = do
+  xs' <- fromArray xs
+  toArray (Prelude.drop n xs')
+
 
 zeroBits :: Int -> Comp n (Val ('Arr 'Bool) n)
 zeroBits n = Lib.Array.replicate n false

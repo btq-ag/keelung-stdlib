@@ -61,14 +61,14 @@ sigma =
 
 test :: Comp GF181 (Val 'Unit GF181)
 test = do
-  let message = "abc"
+  let message = concat $ replicate 200 "abc"
   let hashlen = 64 -- must <= 64
 
   message' <- W8.fromString message
   result <-
-    run
+    hash
       message'
-      (fromIntegral (length message))
+      (length message)
       hashlen
 
   let msgBS = ByteString.Char8.pack message
@@ -83,15 +83,15 @@ test = do
 
   return unit
 
-run ::
+hash ::
   -- | Message to be hashed
   Val ('Arr W8) n ->
   -- | Length of the message in bytes (0..2^128)
-  Word128 ->
+  Int ->
   -- | Desired hash length in bytes (1..64)
   Int ->
   Comp n (Val ('Arr W8) n)
-run msg msgLen hashLen = do
+hash msg msgLen hashLen = do
   --  Initialize State vector h with IV
   hash <- mapM W64.fromWord64 iv >>= toArray
 
@@ -101,23 +101,14 @@ run msg msgLen hashLen = do
   h0 <- iv0 `W64.xor` spice
   update hash 0 h0
 
-  -- ref <- W64.fromHex "6A09E667F2BDC948"
-  -- pred <- h0 `W64.equal` ref
-  -- assert pred
-
-  -- let bytesRemaining = msgLen
-
-  -- forM_ [0, 128 .. bytesRemaining] $ \bytesCompressed -> do
-  --   return ()
-  --  If there was a key supplied (i.e. cbKeyLen > 0)
-  --  then pad with trailing zeros to make it 128-bytes (i.e. 16 words)
-  --  and prepend it to the message M
-
-  let bytesCompressed = 0
+  forM_ [0,128 .. msgLen - 128-1] $ \i -> do
+    chunk <- Array.drop i msg
+    compress hash chunk (fromIntegral (i + 128)) False
 
   --  Compress the final bytes
-  chunk <- pad msg 128
-  compress hash chunk (msgLen `mod` 128) True
+  remain <- Array.drop (msgLen `div` 128 * 128) msg
+  chunk <- pad remain 128
+  compress hash chunk (fromIntegral msgLen) True
 
   -- ref <- W64.fromWord64 0x0D4D1C983FA580BA
   -- assert =<< W64.equal ref =<< access hash 0
