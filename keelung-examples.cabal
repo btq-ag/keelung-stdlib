@@ -41,6 +41,8 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , blake2
+    , bytestring
     , galois-field
     , keelung
     , wide-word

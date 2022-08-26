@@ -21,6 +21,12 @@ import Lib.W64 (W64)
 import qualified Lib.W64 as W64
 import Lib.W8 (W8)
 import qualified Lib.W8 as W8
+import Data.Char
+import Debug.Trace
+import Lib.Array (beq)
+import qualified GHC.Generics as W8
+import qualified Crypto.Hash.BLAKE2.BLAKE2b
+import qualified Data.ByteString.Char8 as ByteString.Char8
 
 -- | Initialization vector
 iv :: [Word64]
@@ -53,79 +59,39 @@ sigma =
     [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3]
   ]
 
--- hash ::
---   -- | Message to be hashed
---   Val ('Arr W8) n ->
---   -- | Length of the message in bytes (0..2^128)
---   Word128 ->
---   -- | Optional key (length : 0..64 bytes)
---   Val ('Arr W8) n ->
---   -- | Length of optional key in bytes (0..64)
---   Int ->
---   -- | Desired hash length in bytes (1..64)
---   Int ->
---   Comp n (Val ('Arr W64) n)
--- hash msg msgLen key keyLen hashLen = do
---   --  Initialize State vector h with IV
---   hash <- mapM W64.fromWord64 iv >>= toArray
-
---   -- rub key size and desired hash length into hash[0]
---   iv0 <- W64.fromWord64 (iv !! 0)
---   spice <- W64.fromWord64 (fromIntegral x0101kknn)
---   h0 <- iv0 `W64.xor` spice
---   update hash 0 h0
-
---   --  If there was a key supplied (i.e. `keyLen` > 0)
---   --  then pad with trailing zeros to make it 128-bytes (i.e. 16 words)
---   --  and prepend it to the message M
---   let bytesRemaining =
---         if keyLen > 0
---           then msgLen + 128
---           else msgLen
-
---   forM_ [0, 128 .. bytesRemaining] $ \bytesCompressed -> do
---     return ()
---   --  If there was a key supplied (i.e. cbKeyLen > 0)
---   --  then pad with trailing zeros to make it 128-bytes (i.e. 16 words)
---   --  and prepend it to the message M
-
---   toArray []
---   where
---     -- from key size ('kk') and desired hash length ('nn')
---     -- for example, if key size = 17 bytes, desired hash length = 3
---     -- then x0101kknn = 0x010101103
---     x0101kknn = 0x01010000 + (keyLen `shiftL` 8) + hashLen
-
 test :: Comp GF181 (Val 'Unit GF181)
 test = do
-  let message = "Hello, world!"
+  let message = concat $ replicate 200 "abc"
+  let hashlen = 64 -- must <= 64
+
   message' <- W8.fromString message
-  actual <-
-    run
+  result <-
+    hash
       message'
-      (fromIntegral (lengthOf message'))
-      64 -- desired hash length in bytes
+      (length message)
+      hashlen
 
-  -- we don't know the hash of the message yet  
-  expected <- toArray []
+  let msgBS = ByteString.Char8.pack message
+  let ansBS = Crypto.Hash.BLAKE2.BLAKE2b.hash hashlen ByteString.Char8.empty msgBS
 
-  -- iterate through 8 W64s and see if they are the same
-  forM_ [0 .. 7] $ \i -> do
-    x <- access actual i
-    y <- access expected i
-    W64.equal x y >>= assert
+  ans <- W8.fromString (ByteString.Char8.unpack ansBS)
+
+  forM_ [0 .. hashlen - 1] $ \i -> do
+    x <- access result i
+    y <- access ans i
+    W8.equal x y >>= assert
 
   return unit
 
-run ::
+hash ::
   -- | Message to be hashed
   Val ('Arr W8) n ->
   -- | Length of the message in bytes (0..2^128)
-  Word128 ->
+  Int ->
   -- | Desired hash length in bytes (1..64)
   Int ->
-  Comp n (Val ('Arr W64) n)
-run msg msgLen hashLen = do
+  Comp n (Val ('Arr W8) n)
+hash msg msgLen hashLen = do
   --  Initialize State vector h with IV
   hash <- mapM W64.fromWord64 iv >>= toArray
 
@@ -135,22 +101,20 @@ run msg msgLen hashLen = do
   h0 <- iv0 `W64.xor` spice
   update hash 0 h0
 
-  -- let bytesRemaining = msgLen
-
-  -- forM_ [0, 128 .. bytesRemaining] $ \bytesCompressed -> do
-  --   return ()
-  --  If there was a key supplied (i.e. cbKeyLen > 0)
-  --  then pad with trailing zeros to make it 128-bytes (i.e. 16 words)
-  --  and prepend it to the message M
-
-  let bytesCompressed = 0
+  forM_ [0,128 .. msgLen - 128-1] $ \i -> do
+    chunk <- Array.drop i msg
+    compress hash chunk (fromIntegral (i + 128)) False
 
   --  Compress the final bytes
+  remain <- Array.drop (msgLen `div` 128 * 128) msg
+  chunk <- pad remain 128
+  compress hash chunk (fromIntegral msgLen) True
 
-  chunk <- pad msg 128
-  compress hash chunk bytesCompressed True
+  -- ref <- W64.fromWord64 0x0D4D1C983FA580BA
+  -- assert =<< W64.equal ref =<< access hash 0
 
-  return hash
+  Array.take hashLen =<< W64.toW8Chunks hash
+
   where
     -- from key size ('kk') and desired hash length ('nn')
     -- for example, if key size = 17 bytes, desired hash length = 3
@@ -165,7 +129,7 @@ pad xs len =
    in if len' >= len
         then return xs
         else do
-          xs' <- W8.fromString (replicate (len - len') ' ')
+          xs' <- W8.zeros (len - len')
           Array.concatenate xs xs'
 
 compress ::
@@ -176,12 +140,11 @@ compress ::
   Comp n ()
 compress hash msg count final = do
   -- allocate 16 Word64 as local state
-  vs <- replicateM 16 (W64.fromWord64 minBound) >>= toArray
+  vs <- W64.zeros 16
 
   -- First 8 items are copied from old hash
   forM_ [0 .. 7] $ \j -> do
-    h <- access hash j
-    update vs j h
+    update vs j =<< access hash j
 
   -- Remaining 8 items are initialized from the IV
   forM_ [8 .. 15] $ \i -> do
@@ -190,16 +153,22 @@ compress hash msg count final = do
     update vs i init
 
   --  Mix the 128-bit counter into V12 & V13
-  v12 <- W64.fromWord64 (Word128.word128Lo64 count)
+  v12 <- access vs 12
+  v12 <- W64.fromWord64 (Word128.word128Lo64 count) >>= (v12 `W64.xor`)
   update vs 12 v12
-  v13 <- W64.fromWord64 (Word128.word128Hi64 count)
+  v13 <- access vs 13
+  v13 <- W64.fromWord64 (Word128.word128Hi64 count)  >>= (v13 `W64.xor`)
   update vs 13 v13
 
   -- If this is the last block then invert all the bits in V14
   when final $ do
-    v14 <- access vs 14
-    complemented <- W64.complement v14
-    update vs 14 complemented
+    update vs 14 =<< W64.complement =<< access vs 14
+
+  msg <- W64.fromW8Chunks msg
+
+  -- ref <- W64.fromHex "6a09e667f2bdc948"
+  -- pred <- access hash 0 >>= W64.equal ref
+  -- assert pred
 
   -- 12 rounds of cryptographic message mixing
   forM_ [0 .. 11] $ \i -> do
@@ -218,10 +187,12 @@ compress hash msg count final = do
   -- Mix the upper and lower halves of `vs` into 'hash'
   --  h0..7 ← h0..7 xor V0..7
   forM_ [0 .. 7] $ \i -> do
+    -- update hash i =<< join (W64.xor <$> access hash i <*> access vs i)
     h <- access hash i
     v <- access vs i
     x <- h `W64.xor` v
     update hash i x
+
   --  h0..7 ← h0..7 xor V8..15
   forM_ [0 .. 7] $ \i -> do
     h <- access hash i
@@ -253,26 +224,23 @@ mix vs ai bi ci di msg xi yi = do
   a <- W64.add x a
   -- Vd ← (Vd xor Va) rotateright 32
   d <- W64.xor d a
-  d <- W64.rotate (-32) d
-
+  d <- W64.rotateR 32 d
   -- Vc ← Vc + Vd       (no input)
   c <- W64.add c d
   -- Vb ← (Vb xor Vc) rotateright 24
   b <- W64.xor b c
-  b <- W64.rotate (-24) b
-
+  b <- W64.rotateR 24 b
   -- Va ← Va + Vb + y   (with input)
   a <- W64.add a b
   a <- W64.add y a
   -- Vd ← (Vd xor Va) rotateright 16
   d <- W64.xor d a
-  d <- W64.rotate (-16) d
-
+  d <- W64.rotateR 16 d
   -- Vc ← Vc + Vd       (no input)
-  a <- W64.add c d
+  c <- W64.add c d
   -- Vb ← (Vb xor Vc) rotateright 63
   b <- W64.xor b c
-  b <- W64.rotate (-63) b
+  b <- W64.rotateR 63 b
 
   -- write back to `vs`
   update vs ai a
@@ -281,26 +249,3 @@ mix vs ai bi ci di msg xi yi = do
   update vs di d
 
   return ()
-
--- test :: Comp GF181 (Val 'Unit GF181)
--- test = do
---   xs <- inputs 3
---   ys <- inputs 3
-
---   let rotate n as = do
---       result <- toArray (replicate 3 false)
---       forM_ [0 .. 2] $ \i -> do
---         x <- access as i
---         let i' = (i - n) `mod` 3
---         update result i' x
---       return result
-
---   xs <- rotate 1 xs
---   -- xs <- rotate 1 xs
-
---   forM_ [0 .. 2] $ \i -> do
---     x <- access xs i
---     y <- access ys i
---     assert (x `BEq` y)
-
---   return unit

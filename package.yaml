@@ -21,9 +21,11 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
-- keelung 
+- keelung
 - wide-word
 - galois-field
+- blake2
+- bytestring
 
 library:
   source-dirs: src
@@ -31,7 +33,7 @@ library:
 # executables:
 #   tutorial:
 #     main:                Main.hs
-#     source-dirs:         src 
+#     source-dirs:         src
 #     ghc-options:
 #     - -threaded
 #     - -rtsopts

@@ -6,7 +6,8 @@ import Control.Monad
 import Data.Bits (Bits (testBit))
 import Data.Word (Word8)
 import Keelung
-import qualified Lib.Array as Array
+import qualified Lib.Array as Arr
+import Numeric (readHex)
 
 type W8 = 'Arr 'Bool
 
@@ -18,13 +19,19 @@ fromWord8 word = toArray $ Prelude.map (Boolean . testBit word) [0 .. 7]
 fromChar :: Char -> Comp n (Val W8 n)
 fromChar = fromWord8 . toEnum . fromEnum
 
--- | Construct an array of W8s from a String  
+-- | Construct an array of W8s from a String
 fromString :: String -> Comp n (Val ('Arr W8) n)
 fromString xs = mapM fromChar xs >>= toArray
 
--- | Equality on W8 
+-- | Equality on W8
 equal :: Val W8 n -> Val W8 n -> Comp n (Val 'Bool n)
-equal = Array.beq 8
+equal = Arr.beq 8
+
+zero :: Comp n (Val W8 n)
+zero = Arr.zeroBits 8
+
+zeros :: Int -> Comp n (Val ('Arr W8) n)
+zeros n = zero >>= Arr.replicate n
 
 ----
 
@@ -39,3 +46,4 @@ fromChar' = fromWord8' . toEnum . fromEnum
 -- | `fromString` implemented with immutable arrays
 fromString' :: String -> Val ('Arr W8) n
 fromString' = toArrayI . map fromChar'
+
