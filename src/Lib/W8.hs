@@ -32,3 +32,18 @@ zero = Arr.zeroBits 8
 
 zeros :: Int -> Comp n (Val ('Arr W8) n)
 zeros n = zero >>= Arr.replicate n
+
+----
+
+-- | `fromWord8` implemented with immutable arrays
+fromWord8' :: Word8 -> Val W8 n
+fromWord8' word = toArrayI $ Prelude.map (Boolean . testBit word) [0 .. 7]
+
+-- | `fromChar` implemented with immutable arrays
+fromChar' :: Char -> Val W8 n
+fromChar' = fromWord8' . toEnum . fromEnum
+
+-- | `fromString` implemented with immutable arrays
+fromString' :: String -> Val ('Arr W8) n
+fromString' = toArrayI . map fromChar'
+
