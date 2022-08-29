@@ -129,9 +129,12 @@ chunks :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr ('Arr 'Bool)) n)
 chunks n xs = do
   xs' <- fromArray xs
   return $ toArrayI $ fmap toArrayI (group n xs')
-  where
-    group :: Int -> [a] -> [[a]]
-    group _ [] = []
-    group n l
-      | n > 0 = take n l : group n (drop n l)
-      | otherwise = error "Negative or zero n"
+
+chunkReverse :: Referable t => Int -> Val ('Arr t) n -> Comp n (Val ('Arr t) n)
+chunkReverse n = fmap (toArrayI . concatMap Prelude.reverse . group n) . fromArray
+
+group :: Int -> [a] -> [[a]]
+group _ [] = []
+group n l
+    | n > 0 = take n l : group n (drop n l)
+    | otherwise = error "Negative or zero n"

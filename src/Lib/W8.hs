@@ -7,6 +7,7 @@ import Data.Bits (Bits (testBit))
 import Data.Word (Word8)
 import Keelung
 import qualified Lib.Array as Arr
+import qualified Lib.ArrayI as ArrI
 import Numeric (readHex)
 
 type W8 = 'Arr 'Bool
@@ -47,3 +48,13 @@ fromChar' = fromWord8' . toEnum . fromEnum
 fromString' :: String -> Val ('Arr W8) n
 fromString' = toArrayI . map fromChar'
 
+-- [A, B, C, D, ...] -> [[D C B A], ...]
+toWordNBE :: Int -> Val ('Arr W8) n -> Comp n (Val ('Arr ('Arr 'Bool)) n)
+toWordNBE n = ArrI.chunkReverse (n `div` 8) >=> ArrI.flatten >=> ArrI.chunks n
+
+-- [[D C B A], ...] -> [A, B, C, D, ...]
+fromWordNBE :: Val ('Arr ('Arr 'Bool)) n -> Comp n (Val ('Arr W8) n)
+fromWordNBE xs = do
+    n <- lengthOf . head <$> fromArray xs
+    xs' <- ArrI.flatten xs >>= ArrI.chunks 8
+    ArrI.chunkReverse (n `div` 8) xs'
