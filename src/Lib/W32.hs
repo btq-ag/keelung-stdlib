@@ -32,3 +32,6 @@ equal = Arr.beq 32
 
 complement :: Val W32 n -> Comp n (Val W32 n)
 complement = Arr.map neg
+
+add :: Val W32 n -> Val W32 n -> Comp n (Val W32 n)
+add = Arr.fullAdder 32
