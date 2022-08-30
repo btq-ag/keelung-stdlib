@@ -56,7 +56,7 @@ zeroBits n = replicate n false
 rotate :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 rotate n xs = do
   xs' <- fromArray xs
-  let n' = (lengthOf xs + n) `mod` lengthOf xs
+  let n' = (lengthOf xs - n) `mod` lengthOf xs
   return $
     toArrayI $ Prelude.drop n' xs' <> Prelude.take n' xs'
 
@@ -73,8 +73,8 @@ shift n xs = do
   return $
     toArrayI $
       if n > 0
-        then Prelude.drop n xs' <> Prelude.replicate n false
-        else Prelude.replicate (lengthOf xs + n) false <> Prelude.take (lengthOf xs + n) xs'
+        then Prelude.replicate n false <> Prelude.take (lengthOf xs - n) xs'
+        else Prelude.drop (negate n) xs' <> Prelude.replicate (lengthOf xs + n) false
 
 shiftL :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 shiftL = shift
