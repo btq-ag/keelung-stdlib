@@ -26,3 +26,12 @@ fromW8 = Arr.cast 32
 
 fromW8Chunks :: Val ('Arr W8) n -> Comp n (Val ('Arr W32) n)
 fromW8Chunks = Arr.flatten >=> Arr.chunks 32
+
+equal :: Val W32 n -> Val W32 n -> Comp n (Val 'Bool n)
+equal = Arr.beq 32
+
+complement :: Val W32 n -> Comp n (Val W32 n)
+complement = Arr.map neg
+
+fromW8ChunksBE :: Val ('Arr W8) n -> Comp n (Val ('Arr W32) n)
+fromW8ChunksBE = Arr.flatten >=> Arr.chunks 32

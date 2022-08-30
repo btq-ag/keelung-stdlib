@@ -46,4 +46,3 @@ fromChar' = fromWord8' . toEnum . fromEnum
 -- | `fromString` implemented with immutable arrays
 fromString' :: String -> Val ('Arr W8) n
 fromString' = toArrayI . map fromChar'
-

@@ -44,3 +44,7 @@ fromW8Chunks = Arr.flatten >=> Arr.chunks 64
 
 toW8Chunks :: Val ('Arr W64) n -> Comp n (Val ('Arr W8) n)
 toW8Chunks = Arr.flatten >=> Arr.chunks 8
+
+-- 0xaabbccddeeffgghh -> [0xaa, 0xbb, 0xcc, 0xdd, ..]
+toW8BE :: Val W64 n -> Comp n (Val ('Arr W8) n)
+toW8BE = Arr.singleton >=> toW8Chunks >=> Arr.reverse
