@@ -13,8 +13,8 @@ beq :: Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val 'Bool n)
 beq as bs =
   foldM
     ( \acc i -> do
-        a <- access as i
-        b <- access bs i
+        a <- Keelung.access as i
+        b <- Keelung.access bs i
         return (acc `And` (a `BEq` b))
     )
     true
@@ -132,6 +132,18 @@ chunks n xs = do
 
 chunkReverse :: Referable t => Int -> Val ('Arr t) n -> Comp n (Val ('Arr t) n)
 chunkReverse n = fmap (toArrayI . concatMap Prelude.reverse . group n) . fromArray
+
+update :: Referable t => Int -> Val t n -> Val ('Arr t) n -> Comp n (Val ('Arr t) n)
+update i x xs = do
+    xs' <- fromArray xs
+    return $ toArrayI $ take i xs' <> (x : drop (i + 1) xs')
+
+access :: Referable t => Val ('Arr t) n -> Int -> Comp n (Val t n)
+access xs i = do
+    xs' <- fromArray xs
+    return $ xs' !! i
+
+--------------------------------------------------------------------------------
 
 group :: Int -> [a] -> [[a]]
 group _ [] = []
