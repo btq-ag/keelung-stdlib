@@ -32,6 +32,3 @@ equal = Arr.beq 32
 
 complement :: Val W32 n -> Comp n (Val W32 n)
 complement = Arr.map neg
-
-fromW8ChunksBE :: Val ('Arr W8) n -> Comp n (Val ('Arr W32) n)
-fromW8ChunksBE = Arr.flatten >=> Arr.chunks 32

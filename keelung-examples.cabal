@@ -33,6 +33,7 @@ library
       Lib.W64
       Lib.W8
       Practice
+      SHA256
       Tutorial
       Tutorial.FullAdder
       Tutorial.TempConv
@@ -44,6 +45,7 @@ library
       base >=4.7 && <5
     , blake2
     , bytestring
+    , cryptohash-sha256
     , galois-field
     , keelung
     , wide-word

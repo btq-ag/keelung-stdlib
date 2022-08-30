@@ -26,6 +26,7 @@ dependencies:
 - galois-field
 - blake2
 - bytestring
+- cryptohash-sha256
 
 library:
   source-dirs: src
