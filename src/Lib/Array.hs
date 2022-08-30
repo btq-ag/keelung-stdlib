@@ -105,21 +105,18 @@ rotateL = rotate . fromIntegral
 rotateR :: Natural -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 rotateR = rotate . negate . fromIntegral
 
--- | Shift left by i bits if i is positive, or right by -i bits otherwise
+-- | Shift right by i bits if i is positive, or left by -i bits otherwise
 shift :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 shift n xs = do
   xs' <- fromArray xs
-  let l = length xs'
-  result <- Lib.Array.replicate l false
-  let rng =
-        if n >= 0
-          then [0 .. n - 1]
-          else [-n .. l - 1]
-  forM_ (zip rng xs') $ \(i, x) -> update result (i + n) x
-  return result
+  toArray $
+    if n > 0
+        then Prelude.replicate n false <> Prelude.take (lengthOf xs - n) xs'
+        else Prelude.drop (negate n) xs' <> Prelude.replicate (lengthOf xs + n) false
+
 
 shiftL :: Natural -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
-shiftL = shift . fromIntegral
+shiftL = shift .  fromIntegral
 
 shiftR :: Natural -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 shiftR = shift . negate . fromIntegral

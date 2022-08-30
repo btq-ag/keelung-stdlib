@@ -26,7 +26,6 @@ import qualified Lib.W8 as W8
 import qualified Keelung.Constraint.Polynomial as W8
 import qualified Lib.W32 as W32
 import Lib.W32 (W32)
-import qualified Lib.ArrayI as ArrayI
 
 -- | Initialization vector
 iv :: [Word32]
@@ -65,7 +64,7 @@ k =
 
 test :: Comp GF181 (Val 'Unit GF181)
 test = do
-  let message = "abcdefgh"
+  let message = concat $ replicate 55 "a"
   message' <- W8.fromString message
 
   -- ref <- W8.fromWord8 0x61
@@ -100,20 +99,21 @@ hash xs = do
 pad :: Val ('Arr W8) n -> Comp n (Val ('Arr W8) n)
 pad xs = do
   let datalen = lengthOf xs
-  xs <- ArrayI.concatenate xs =<< Array.singleton =<< W8.fromWord8 0x80
+  xs <- Array.concatenate xs =<< Array.singleton =<< W8.fromWord8 0x80
 
   let curlen = lengthOf xs
-  xs <- ArrayI.concatenate xs =<< W8.zeros ((56 - curlen) `mod` 64)
+  let padlen = (56 - curlen) `mod` 64
+  xs <- if padlen == 0 then return xs
+    else Array.concatenate xs =<< W8.zeros padlen
 
   lenpad <- W64.fromWord64 (fromIntegral datalen * 8)
-  ArrayI.concatenate xs =<< W64.toW8BE lenpad
+  Array.concatenate xs =<< W64.toW8BE lenpad
 
 compress :: Val ('Arr W32) n -> Val ('Arr W8) n -> Comp n ()
 compress s xs = do
   m <- W8.toWordNBE 32 xs
 
-  -- ! Array.concatenate 不能?
-  m <- ArrayI.concatenate m =<< W32.zeros (64-16)
+  m <- Array.concatenate m =<< W32.zeros (64-16)
 
   forM_ [16 .. 63] $ \i -> do
     mi2 <- access m (i-2)
@@ -121,7 +121,6 @@ compress s xs = do
     mi15 <- access m (i-15)
     mi16 <- access m (i-16)
 
-    let t = mi2
     t <- sig1 mi2 >>= W32.add mi7
     t <- sig0 mi15 >>= W32.add t >>= W32.add mi16
     update m i t
@@ -153,9 +152,13 @@ compress s xs = do
     tmp <- maj a b c
     t2 <- ep0 a >>= W32.add tmp
 
-    let h = g; g = f; f = e
+    let h = g
+    let g = f
+    let f = e
     e <- W32.add d t1
-    let d = c; c = b; b = a;
+    let d = c
+    let c = b
+    let b = a
     a <- W32.add t1 t2
 
     update s 0 a
@@ -166,6 +169,8 @@ compress s xs = do
     update s 5 f
     update s 6 g
     update s 7 h
+
+    return ()
 
   update s 0 =<< W32.add a' =<< access s 0
   update s 1 =<< W32.add b' =<< access s 1
@@ -187,39 +192,39 @@ ep1 :: Val W32 n -> Comp n (Val W32 n)
 sig0 :: Val W32 n -> Comp n (Val W32 n)
 sig1 :: Val W32 n -> Comp n (Val W32 n)
 
-xor3 x y z = ArrayI.xor x =<< ArrayI.xor y z
+xor3 x y z = Array.xor x =<< Array.xor y z
 
 ch x y z = do
-  s <- ArrayI.and x y
-  t <- ArrayI.and z =<< W32.complement x
-  ArrayI.xor s t
+  s <- Array.and x y
+  t <- Array.and z =<< W32.complement x
+  Array.xor s t
 
 maj x y z = do
-  s <- ArrayI.and x y
-  t <- ArrayI.and x z
-  u <- ArrayI.and z y
+  s <- Array.and x y
+  t <- Array.and x z
+  u <- Array.and z y
   xor3 s t u
 
 ep0 x = do
-  s <- ArrayI.rotateR 2 x
-  t <- ArrayI.rotateR 13 x
-  u <- ArrayI.rotateR 22 x
+  s <- Array.rotateR 2 x
+  t <- Array.rotateR 13 x
+  u <- Array.rotateR 22 x
   xor3 s t u
 
 ep1 x = do
-  s <- ArrayI.rotateR 6 x
-  t <- ArrayI.rotateR 11 x
-  u <- ArrayI.rotateR 25 x
+  s <- Array.rotateR 6 x
+  t <- Array.rotateR 11 x
+  u <- Array.rotateR 25 x
   xor3 s t u
 
 sig0 x = do
-  s <- ArrayI.rotateR 7 x
-  t <- ArrayI.rotateR 18 x
-  u <- ArrayI.shiftR 3 x
+  s <- Array.rotateR 7 x
+  t <- Array.rotateR 18 x
+  u <- Array.shiftR 3 x
   xor3 s t u
 
 sig1 x = do
-  s <- ArrayI.rotateR 17 x
-  t <- ArrayI.rotateR 19 x
-  u <- ArrayI.shiftR 10 x
+  s <- Array.rotateR 17 x
+  t <- Array.rotateR 19 x
+  u <- Array.shiftR 10 x
   xor3 s t u
