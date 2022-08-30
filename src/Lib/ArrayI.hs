@@ -7,7 +7,6 @@ import Keelung
 import qualified Lib.Array as Mutable
 import Prelude hiding (replicate)
 import qualified Prelude
-import Lib.W8 (W8)
 
 -- | See if 2 bit arrays are equal.
 beq :: Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val 'Bool n)
@@ -138,23 +137,5 @@ group n l
   | n > 0 = take n l : group n (drop n l)
   | otherwise = error "Negative or zero n"
 
-fromWordNBE :: Val ('Arr ('Arr 'Bool)) n -> Comp n (Val ('Arr W8) n)
-fromWordNBE xs = do
-    xs' <- fromArray xs
-    tt <- mapM toWord8LE xs'
-    let ttt = concat tt
-    return $ toArrayI (Prelude.map toArrayI ttt)
-    where
-        toWord8LE :: Val ('Arr 'Bool) n -> Comp n [[Val 'Bool n]]
-        toWord8LE = fmap (Prelude.reverse . group 8) . fromArray
-
-toWordNBE :: Int -> Val ('Arr W8) n -> Comp n (Val ('Arr ('Arr 'Bool)) n)
-toWordNBE n xs = do
-    xs' <- group n <$> fromArray xs
-    let t = Prelude.map Prelude.reverse xs'
-    toArrayI <$> mapM aggregate t
-  where
-    aggregate :: [Val W8 n] -> Comp n (Val ('Arr 'Bool) n)
-    aggregate xs = do
-      xss <- mapM fromArray xs
-      return $ toArrayI (concat xss)
+chunkReverse :: Referable t => Int -> Val ('Arr t) n -> Comp n (Val ('Arr t) n)
+chunkReverse n = fmap (toArrayI . concatMap Prelude.reverse . group n) . fromArray

@@ -12,7 +12,7 @@ testBE = do
   let message = "abcdefgh"
   message' <- W8.fromString message
 
-  m <- ArrayI.toWordNBE 4 message'
+  m <- W8.toWordNBE 32 message'
 
   ref <- W32.fromWord32 0x61626364
   assert =<< W32.equal ref =<< access m 0
@@ -20,7 +20,7 @@ testBE = do
   ref <- W32.fromWord32 0x65666768
   assert =<< W32.equal ref =<< access m 1
 
-  m' <- ArrayI.fromWordNBE m
+  m' <- W8.fromWordNBE m
 
   ref <- W8.fromWord8 0x61
   assert =<< W8.equal ref =<< access m' 0

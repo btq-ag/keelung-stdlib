@@ -7,6 +7,7 @@ import Data.Bits (Bits (testBit))
 import Data.Word (Word8)
 import Keelung
 import qualified Lib.Array as Arr
+import qualified Lib.ArrayI as ArrI
 import Numeric (readHex)
 
 type W8 = 'Arr 'Bool
@@ -46,3 +47,40 @@ fromChar' = fromWord8' . toEnum . fromEnum
 -- | `fromString` implemented with immutable arrays
 fromString' :: String -> Val ('Arr W8) n
 fromString' = toArrayI . map fromChar'
+
+----
+
+-- [A, B, C, D, ...] -> [[D C B A], ...]
+toWordNBE :: Int -> Val ('Arr W8) n -> Comp n (Val ('Arr ('Arr 'Bool)) n)
+toWordNBE n = ArrI.chunkReverse (n `div` 8) >=> ArrI.flatten >=> ArrI.chunks n
+
+-- [[D C B A], ...] -> [A, B, C, D, ...]
+fromWordNBE :: Val ('Arr ('Arr 'Bool)) n -> Comp n (Val ('Arr W8) n)
+fromWordNBE xs = do
+    n <- lengthOf . head <$> fromArray xs
+    xs' <- ArrI.flatten xs >>= ArrI.chunks 8
+    ArrI.chunkReverse (n `div` 8) xs'
+
+-- fromWordNBE' === fromWordNBE
+-- toWordNBE' (n*4) === toWordNBE' n
+--
+-- fromWordNBE' :: Val ('Arr ('Arr 'Bool)) n -> Comp n (Val ('Arr W8) n)
+-- fromWordNBE' xs = do
+--     xs' <- fromArray xs
+--     tt <- mapM toWord8LE xs'
+--     let ttt = concat tt
+--     return $ toArrayI (Prelude.map toArrayI ttt)
+--     where
+--         toWord8LE :: Val ('Arr 'Bool) n -> Comp n [[Val 'Bool n]]
+--         toWord8LE = fmap (Prelude.reverse . group 8) . fromArray
+
+-- toWordNBE' :: Int -> Val ('Arr W8) n -> Comp n (Val ('Arr ('Arr 'Bool)) n)
+-- toWordNBE' n xs = do
+--     xs' <- group n <$> fromArray xs
+--     let t = Prelude.map Prelude.reverse xs'
+--     toArrayI <$> mapM aggregate t
+--   where
+--     aggregate :: [Val W8 n] -> Comp n (Val ('Arr 'Bool) n)
+--     aggregate xs = do
+--       xss <- mapM fromArray xs
+--       return $ toArrayI (concat xss)
