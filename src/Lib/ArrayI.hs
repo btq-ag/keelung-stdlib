@@ -73,8 +73,8 @@ shift n xs = do
     toArrayI $
       let l = lengthOf xs in
       if n > 0
-        then Prelude.replicate (min n l) false <> Prelude.take (l- n) xs'
-        else Prelude.drop (negate n) xs' <> Prelude.replicate (min n l) false
+        then Prelude.map (const false) (take n xs') <> Prelude.take (l- n) xs'
+        else Prelude.drop (-n) xs' <> Prelude.map (const false) (take (-n) xs')
 
 shiftL :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 shiftL = shift
