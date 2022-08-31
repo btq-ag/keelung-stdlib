@@ -48,3 +48,37 @@ library
     , keelung
     , wide-word
   default-language: Haskell2010
+
+test-suite keelung-examples-test
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  other-modules:
+      Test.Lib.ArrayI
+      BLAKE2b
+      Lib.Array
+      Lib.ArrayI
+      Lib.TestI
+      Lib.W32
+      Lib.W64
+      Lib.W8
+      Practice
+      Tutorial
+      Tutorial.FullAdder
+      Tutorial.TempConv
+      Paths_keelung_examples
+  hs-source-dirs:
+      test
+      src
+  ghc-options: -Wall -Werror=incomplete-patterns -fno-warn-orphans
+  build-depends:
+      QuickCheck
+    , base >=4.7 && <5
+    , blake2
+    , bytestring
+    , galois-field
+    , keelung
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , wide-word
+  default-language: Haskell2010
