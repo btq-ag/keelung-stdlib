@@ -71,9 +71,10 @@ shift n xs = do
   xs' <- fromArray xs
   return $
     toArrayI $
+      let l = lengthOf xs in
       if n > 0
-        then Prelude.replicate n false <> Prelude.take (lengthOf xs - n) xs'
-        else Prelude.drop (negate n) xs' <> Prelude.replicate (lengthOf xs + n) false
+        then Prelude.replicate (min n l) false <> Prelude.take (l- n) xs'
+        else Prelude.drop (negate n) xs' <> Prelude.replicate (min n l) false
 
 shiftL :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 shiftL = shift
