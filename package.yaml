@@ -30,6 +30,23 @@ dependencies:
 library:
   source-dirs: src
 
+tests:
+  keelung-examples-test:
+    main: Test.hs
+    source-dirs:
+      - test
+      - src
+    dependencies:
+      - tasty
+      - tasty-quickcheck
+      - tasty-hunit
+      - QuickCheck
+
+    ghc-options:
+      - -Wall
+      - -Werror=incomplete-patterns
+      - -fno-warn-orphans
+
 # executables:
 #   tutorial:
 #     main:                Main.hs
