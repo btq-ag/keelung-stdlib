@@ -3,8 +3,7 @@
 module Lib.ArrayI where
 
 import Control.Monad
-import Keelung
-import qualified Lib.Array as Mutable
+import Keelung hiding (access, update)
 import Prelude hiding (replicate)
 import qualified Prelude
 
@@ -13,8 +12,8 @@ beq :: Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val 'Bool n)
 beq as bs =
   foldM
     ( \acc i -> do
-        a <- Keelung.access as i
-        b <- Keelung.access bs i
+        a <- access as i
+        b <- access bs i
         return (acc `And` (a `BEq` b))
     )
     true
@@ -150,3 +149,23 @@ group _ [] = []
 group n l
     | n > 0 = take n l : group n (drop n l)
     | otherwise = error "Negative or zero n"
+
+fullAdder1bit :: Val 'Bool n -> Val 'Bool n -> Val 'Bool n -> (Val 'Bool n, Val 'Bool n)
+fullAdder1bit a b carry =
+  let value = a `Xor` b `Xor` carry
+      nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
+  in (value, nextCarry)
+
+fullAdder :: Int -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+fullAdder width as bs = do
+  (result, _) <- foldM
+    ( \(result, carry) i -> do
+        a <- access as i
+        b <- access bs i
+        let (value, nextCarry) = fullAdder1bit a b carry
+        result <- update i value result
+        return (result, nextCarry)
+    )
+    (zeroBits width, false)
+    [0 .. width - 1]
+  return result

@@ -28,6 +28,7 @@ library
       BLAKE2b
       Lib.Array
       Lib.ArrayI
+      Lib.TestI
       Lib.W32
       Lib.W64
       Lib.W8

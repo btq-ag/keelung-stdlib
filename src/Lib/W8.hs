@@ -58,3 +58,12 @@ fromWordNBE xs = do
     n <- lengthOf . head <$> fromArray xs
     xs' <- ArrI.flatten xs >>= ArrI.chunks 8
     ArrI.chunkReverse (n `div` 8) xs'
+
+
+---
+
+equal' :: Val W8 n -> Val W8 n -> Comp n (Val 'Bool n)
+equal' = ArrI.beq
+
+add' :: Val W8 n -> Val W8 n -> Comp n (Val W8 n)
+add' = ArrI.fullAdder 8
