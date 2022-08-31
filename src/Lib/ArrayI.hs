@@ -117,11 +117,11 @@ flatten xss = do
   xss'' <- mapM fromArray xss'
   return $ toArrayI $ Prelude.concat xss''
 
-cast :: Int -> Val ('Arr 'Bool) n -> Comp n (Val (Arr 'Bool) n)
+cast :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 cast n xs = cast' n <$> fromArray xs
 
 -- | length xs < n
-cast' :: Int -> [Val 'Bool n] -> Val (Arr 'Bool) n
+cast' :: Int -> [Val 'Bool n] -> Val ('Arr 'Bool) n
 cast' n xs = toArrayI $ xs ++ Prelude.replicate (n - length xs) false
 
 chunks :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr ('Arr 'Bool)) n)
