@@ -6,8 +6,11 @@
 
 module Tutorial where
 
-import Control.Monad (forM_)
+import Control.Monad
 import Keelung
+import qualified Lib.W8 as W8
+import qualified Lib.Array as Array
+import qualified BLAKE2b
 
 -- | Outputs whether number is given.
 echo :: Comp GF181 (Val 'Num GF181)
@@ -67,6 +70,23 @@ summation = do
     return $ acc + x
 
 returnArray :: Comp GF181 (Val ('Arr 'Num) GF181)
-returnArray = do 
-  x <- input 
+returnArray = do
+  x <- input
   toArray [x, x, x, x]
+
+-- > interpret (blake2b 2 3) [1,0,0,0,0,1,1,0, 0,1,0,0,0,1,1,0]
+--   Right [10110010 11101100 00100010]
+--
+-- means to calculate the 3-byte digest blake2b of string "ab"
+-- a = 0b01100001, b = 0b01000010
+-- the answer is Blake2b-24("ab") = 0x4d3744, which is
+-- 0b01001101, 0b00110111, 0b1000100
+blake2b :: Int -> Int -> Comp GF181 (Val ('Arr ('Arr 'Bool)) GF181)
+blake2b msglen hashlen = do
+  x <- forM [0 .. msglen * 8-1] (const input)
+
+  -- x is a bit string
+  msg <- Array.chunks 8 =<< toArray x
+  -- msg is a [W8], where each W8 is in LE
+
+  BLAKE2b.hash msg msglen hashlen
