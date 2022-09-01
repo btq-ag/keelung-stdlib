@@ -83,10 +83,6 @@ returnArray = do
 -- 0b01001101, 0b00110111, 0b1000100
 blake2b :: Int -> Int -> Comp GF181 (Val ('Arr ('Arr 'Bool)) GF181)
 blake2b msglen hashlen = do
-  x <- forM [0 .. msglen * 8-1] (const input)
-
-  -- x is a bit string
-  msg <- Array.chunks 8 =<< toArray x
-  -- msg is a [W8], where each W8 is in LE
+  msg <- inputs2 msglen 8
 
   BLAKE2b.hash msg msglen hashlen
