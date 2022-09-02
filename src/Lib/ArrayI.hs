@@ -140,7 +140,7 @@ cast n xs = cast' n <$> fromArray xs
 cast' :: Int -> [Val 'Bool n] -> Val ('Arr 'Bool) n
 cast' n xs = toArrayI $ xs ++ Prelude.replicate (n - length xs) false
 
-chunks :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr ('Arr 'Bool)) n)
+chunks :: Referable t => Int -> Val ('Arr t) n -> Comp n (Val ('Arr ('Arr t)) n)
 chunks n xs = do
   xs' <- fromArray xs
   return $ toArrayI $ fmap toArrayI (group n xs')
