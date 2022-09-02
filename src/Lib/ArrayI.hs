@@ -3,6 +3,7 @@
 module Lib.ArrayI where
 
 import Control.Monad
+import Data.Bifunctor
 import Keelung hiding (access, update)
 import Prelude hiding (replicate)
 import qualified Prelude
@@ -157,16 +158,14 @@ fullAdder1bit a b carry =
       nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
   in (value, nextCarry)
 
-fullAdder :: Int -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
-fullAdder width as bs = do
-  (result, _) <- foldM
-    ( \(result, carry) i -> do
-        a <- access as i
-        b <- access bs i
-        let (value, nextCarry) = fullAdder1bit a b carry
-        result <- update i value result
-        return (result, nextCarry)
-    )
-    (zeroBits width, false)
-    [0 .. width - 1]
-  return result
+fullAdder :: Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+fullAdder as bs = do
+  as' <- fromArray as
+  bs' <- fromArray bs
+  return . toArrayI . fst $
+    foldl
+      ( \(result, carry) (a, b) -> do
+          first (: result) $ fullAdder1bit a b carry
+      )
+      ([], false)
+      (zip as' bs')
