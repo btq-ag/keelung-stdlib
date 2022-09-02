@@ -6,8 +6,11 @@
 
 module Tutorial where
 
-import Control.Monad (forM_)
+import qualified BLAKE2b
+import Control.Monad
 import Keelung
+import qualified Lib.Array as Array
+import qualified Lib.W8 as W8
 
 -- | Outputs whether number is given.
 echo :: Comp (Val 'Num)
@@ -56,7 +59,7 @@ allBe42 = do
   -- access elements of `xs` with indices
   forM_ [0 .. 9] $ \i -> do
     assert (access xs i `Eq` 42)
-  -- access elements of `xs` directly 
+  -- access elements of `xs` directly
   forM_ (fromArray xs) $ \x -> do
     assert (x `Eq` 42)
   return unit
@@ -71,3 +74,15 @@ returnArray :: Comp (Val ('Arr 'Num))
 returnArray = do
   x <- input
   return $ toArray [x, x, x, x]
+
+-- > interpret (blake2b 2 3) [1,0,0,0,0,1,1,0, 0,1,0,0,0,1,1,0]
+--   Right [10110010 11101100 00100010]
+--
+-- means to calculate the 3-byte digest blake2b of string "ab"
+-- a = 0b01100001, b = 0b01000010
+-- the answer is Blake2b-24("ab") = 0x4d3744, which is
+-- 0b01001101, 0b00110111, 0b1000100
+blake2b :: Int -> Int -> Comp (Val ('ArrM ('ArrM 'Bool)))
+blake2b msglen hashlen = do
+  msg <- inputs2 msglen 8 >>= thaw2
+  BLAKE2b.hash msg msglen hashlen
