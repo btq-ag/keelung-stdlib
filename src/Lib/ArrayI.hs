@@ -11,7 +11,7 @@ import qualified Prelude
 -- | See if 2 bit arrays are equal.
 beq :: Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val 'Bool n)
 beq as bs =
-  foldM
+  Control.Monad.foldM
     ( \acc i -> do
         a <- access as i
         b <- access bs i
@@ -19,6 +19,14 @@ beq as bs =
     )
     true
     [0 .. lengthOf as - 1]
+
+foldM ::
+  (Referable a) =>
+  (Val b n -> Val a n -> Comp n (Val b n)) ->
+  Val b n ->
+  Val ('Arr a) n ->
+  Comp n (Val b n)
+foldM f y xs = fromArray xs >>= Control.Monad.foldM f y
 
 -- | `map` for Keelung arrays
 map :: (Referable a, Referable b) => (Val a n -> Val b n) -> Val ('Arr a) n -> Comp n (Val ('Arr b) n)
@@ -48,6 +56,12 @@ reverse xs = do
 
 replicate :: Referable t => Int -> Val t n -> Val ('Arr t) n
 replicate n x = toArrayI $ Prelude.replicate n x
+
+take :: Referable a => Int -> Val ('Arr a) n -> Comp n (Val ('Arr a) n)
+take n xs = toArrayI . Prelude.take n <$> fromArray xs
+
+drop :: Referable a => Int -> Val ('Arr a) n -> Comp n (Val ('Arr a) n)
+drop n xs = toArrayI . Prelude.drop n <$> fromArray xs
 
 zeroBits :: Int -> Val ('Arr 'Bool) n
 zeroBits n = replicate n false
@@ -143,6 +157,9 @@ access :: Referable t => Val ('Arr t) n -> Int -> Comp n (Val t n)
 access xs i = do
     xs' <- fromArray xs
     return $ xs' !! i
+
+update' :: Referable t => Int -> (Val t n -> Comp n (Val t n)) -> Val ('Arr t) n -> Comp n (Val ('Arr t) n)
+update' i op xs = access xs i >>= op >>= \x -> update i x xs
 
 --------------------------------------------------------------------------------
 
