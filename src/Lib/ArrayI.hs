@@ -86,10 +86,10 @@ shift n xs = do
   xs' <- fromArray xs
   return $
     toArrayI $
-      let l = lengthOf xs in
-      if n > 0
-        then Prelude.map (const false) (take n xs') <> Prelude.take (l- n) xs'
-        else Prelude.drop (-n) xs' <> Prelude.map (const false) (take (-n) xs')
+      let l = lengthOf xs
+       in if n > 0
+            then Prelude.map (const false) (Prelude.take n xs') <> Prelude.take (l - n) xs'
+            else Prelude.drop (-n) xs' <> Prelude.map (const false) (Prelude.take (-n) xs')
 
 shiftL :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 shiftL = shift
@@ -150,13 +150,13 @@ chunkReverse n = fmap (toArrayI . concatMap Prelude.reverse . group n) . fromArr
 
 update :: Referable t => Int -> Val t n -> Val ('Arr t) n -> Comp n (Val ('Arr t) n)
 update i x xs = do
-    xs' <- fromArray xs
-    return $ toArrayI $ take i xs' <> (x : drop (i + 1) xs')
+  xs' <- fromArray xs
+  return $ toArrayI $ Prelude.take i xs' <> (x : Prelude.drop (i + 1) xs')
 
 access :: Referable t => Val ('Arr t) n -> Int -> Comp n (Val t n)
 access xs i = do
-    xs' <- fromArray xs
-    return $ xs' !! i
+  xs' <- fromArray xs
+  return $ xs' !! i
 
 update' :: Referable t => Int -> (Val t n -> Comp n (Val t n)) -> Val ('Arr t) n -> Comp n (Val ('Arr t) n)
 update' i op xs = access xs i >>= op >>= \x -> update i x xs
@@ -166,14 +166,14 @@ update' i op xs = access xs i >>= op >>= \x -> update i x xs
 group :: Int -> [a] -> [[a]]
 group _ [] = []
 group n l
-    | n > 0 = take n l : group n (drop n l)
-    | otherwise = error "Negative or zero n"
+  | n > 0 = Prelude.take n l : group n (Prelude.drop n l)
+  | otherwise = error "Negative or zero n"
 
 fullAdder1bit :: Val 'Bool n -> Val 'Bool n -> Val 'Bool n -> (Val 'Bool n, Val 'Bool n)
 fullAdder1bit a b carry =
   let value = a `Xor` b `Xor` carry
       nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
-  in (value, nextCarry)
+   in (value, nextCarry)
 
 fullAdder :: Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
 fullAdder as bs = do
