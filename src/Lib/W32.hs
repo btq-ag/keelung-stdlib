@@ -8,21 +8,35 @@ import Data.Bits (Bits (testBit))
 import Data.Word (Word32)
 import Keelung
 import qualified Lib.Array as Arr
-import Lib.W8 (W8)
+import Lib.W8 (W8, W8M)
+import qualified Lib.W8 as W8
 
+type W32M = 'ArrM 'Bool
 type W32 = 'Arr 'Bool
 
-fromWord32 :: Word32 -> Comp n (Val W32 n)
-fromWord32 word = toArray $ map (Boolean . testBit word) [0 .. 31]
+fromWord32 :: Word32 -> Comp (Val W32M)
+fromWord32 word = toArrayM $ map (Boolean . testBit word) [0 .. 31]
 
-zero :: Comp n (Val W32 n)
+equal :: Val W32M -> Val W32M -> Comp (Val 'Bool)
+equal = Arr.beq 32
+
+zero :: Comp (Val W32M)
 zero = Arr.zeroBits 32
 
-zeros :: Int -> Comp n (Val ('Arr W32) n)
+zeros :: Int -> Comp (Val ('ArrM W32M))
 zeros n = zero >>= Arr.replicate n
 
-fromW8 :: Val W8 n -> Comp n (Val W32 n)
+fromW8 :: Val W8M -> Comp (Val W32M)
 fromW8 = Arr.cast 32
 
-fromW8Chunks :: Val ('Arr W8) n -> Comp n (Val ('Arr W32) n)
+fromW8Chunks :: Val ('ArrM W8M) -> Comp (Val ('ArrM W32M))
 fromW8Chunks = Arr.flatten >=> Arr.chunks 32
+
+fromW8Chunks' :: Val ('Arr W8) -> Val ('Arr W32)
+fromW8Chunks' = W8.toWordNBE' 32
+
+fromWord32' :: Word32 -> Val W32
+fromWord32' w = toArray $ Prelude.map (Boolean . testBit w) [0 .. 31]
+
+fromWord32List' :: [Word32] -> Val ('Arr W32)
+fromWord32List' = toArray . map fromWord32'

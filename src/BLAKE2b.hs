@@ -17,9 +17,9 @@ import qualified Data.WideWord.Word128 as Word128
 import Data.Word
 import Keelung
 import qualified Lib.Array as Array
-import Lib.W64 (W64)
+import Lib.W64 (W64M)
 import qualified Lib.W64 as W64
-import Lib.W8 (W8)
+import Lib.W8 (W8M)
 import qualified Lib.W8 as W8
 import Data.Char
 import Debug.Trace
@@ -59,7 +59,7 @@ sigma =
     [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3]
   ]
 
-test :: Comp GF181 (Val 'Unit GF181)
+test :: Comp (Val 'Unit)
 test = do
   let message = concat $ replicate 200 "abc"
   let hashlen = 64 -- must <= 64
@@ -77,29 +77,29 @@ test = do
   ans <- W8.fromString (ByteString.Char8.unpack ansBS)
 
   forM_ [0 .. hashlen - 1] $ \i -> do
-    x <- access result i
-    y <- access ans i
+    x <- accessM result i
+    y <- accessM ans i
     W8.equal x y >>= assert
 
   return unit
 
 hash ::
   -- | Message to be hashed
-  Val ('Arr W8) n ->
+  Val ('ArrM W8M) ->
   -- | Length of the message in bytes (0..2^128)
   Int ->
   -- | Desired hash length in bytes (1..64)
   Int ->
-  Comp n (Val ('Arr W8) n)
+  Comp (Val ('ArrM W8M))
 hash msg msgLen hashLen = do
   --  Initialize State vector h with IV
-  hash <- mapM W64.fromWord64 iv >>= toArray
+  hash <- mapM W64.fromWord64 iv >>= toArrayM
 
   -- rub key size and desired hash length into hash[0]
   iv0 <- W64.fromWord64 (iv !! 0)
   spice <- W64.fromWord64 (fromIntegral x0101kknn)
   h0 <- iv0 `W64.xor` spice
-  update hash 0 h0
+  updateM hash 0 h0
 
   forM_ [0,128 .. msgLen - 128-1] $ \i -> do
     chunk <- Array.drop i msg
@@ -111,7 +111,7 @@ hash msg msgLen hashLen = do
   compress hash chunk (fromIntegral msgLen) True
 
   -- ref <- W64.fromWord64 0x0D4D1C983FA580BA
-  -- assert =<< W64.equal ref =<< access hash 0
+  -- assert =<< W64.equal ref =<< accessM hash 0
 
   Array.take hashLen =<< W64.toW8Chunks hash
 
@@ -123,9 +123,9 @@ hash msg msgLen hashLen = do
     x0101kknn = 0x01010000 + (0 `shiftL` 8) + hashLen
 
 -- | Padding a message with `false` to the desired length
-pad :: Val ('Arr W8) n -> Int -> Comp n (Val ('Arr W8) n)
+pad :: Val ('ArrM W8M) -> Int -> Comp (Val ('ArrM W8M))
 pad xs len =
-  let len' = lengthOf xs
+  let len' = lengthOfM xs
    in if len' >= len
         then return xs
         else do
@@ -133,41 +133,41 @@ pad xs len =
           Array.concatenate xs xs'
 
 compress ::
-  Val ('Arr W64) n -> -- 128 bytes of old hash value
-  Val ('Arr W64) n -> -- 128 bytes of message to compress
+  Val ('ArrM W64M) -> -- 128 bytes of old hash value
+  Val ('ArrM W64M) -> -- 128 bytes of message to compress
   Word128 -> -- count of bytes that have been compressed before
   Bool -> -- is this the final round of compression?
-  Comp n ()
+  Comp ()
 compress hash msg count final = do
   -- allocate 16 Word64 as local state
   vs <- W64.zeros 16
 
   -- First 8 items are copied from old hash
   forM_ [0 .. 7] $ \j -> do
-    update vs j =<< access hash j
+    updateM vs j =<< accessM hash j
 
   -- Remaining 8 items are initialized from the IV
   forM_ [8 .. 15] $ \i -> do
     -- creates a W64 from Word64s in `iv`
     init <- W64.fromWord64 (iv !! (i - 8))
-    update vs i init
+    updateM vs i init
 
   --  Mix the 128-bit counter into V12 & V13
-  v12 <- access vs 12
+  v12 <- accessM vs 12
   v12 <- W64.fromWord64 (Word128.word128Lo64 count) >>= (v12 `W64.xor`)
-  update vs 12 v12
-  v13 <- access vs 13
+  updateM vs 12 v12
+  v13 <- accessM vs 13
   v13 <- W64.fromWord64 (Word128.word128Hi64 count)  >>= (v13 `W64.xor`)
-  update vs 13 v13
+  updateM vs 13 v13
 
   -- If this is the last block then invert all the bits in V14
   when final $ do
-    update vs 14 =<< W64.complement =<< access vs 14
+    updateM vs 14 =<< W64.complement =<< accessM vs 14
 
   msg <- W64.fromW8Chunks msg
 
   -- ref <- W64.fromHex "6a09e667f2bdc948"
-  -- pred <- access hash 0 >>= W64.equal ref
+  -- pred <- accessM hash 0 >>= W64.equal ref
   -- assert pred
 
   -- 12 rounds of cryptographic message mixing
@@ -187,37 +187,37 @@ compress hash msg count final = do
   -- Mix the upper and lower halves of `vs` into 'hash'
   --  h0..7 ← h0..7 xor V0..7
   forM_ [0 .. 7] $ \i -> do
-    -- update hash i =<< join (W64.xor <$> access hash i <*> access vs i)
-    h <- access hash i
-    v <- access vs i
+    -- updateM hash i =<< join (W64.xor <$> accessM hash i <*> accessM vs i)
+    h <- accessM hash i
+    v <- accessM vs i
     x <- h `W64.xor` v
-    update hash i x
+    updateM hash i x
 
   --  h0..7 ← h0..7 xor V8..15
   forM_ [0 .. 7] $ \i -> do
-    h <- access hash i
-    v <- access vs (i + 8)
+    h <- accessM hash i
+    v <- accessM vs (i + 8)
     x <- h `W64.xor` v
-    update hash i x
+    updateM hash i x
 
 mix ::
-  Val ('Arr W64) n ->
+  Val ('ArrM W64M) ->
   Int ->
   Int ->
   Int ->
   Int ->
-  Val ('Arr W64) n ->
+  Val ('ArrM W64M) ->
   Int ->
   Int ->
-  Comp n ()
+  Comp ()
 mix vs ai bi ci di msg xi yi = do
-  a <- access vs ai
-  b <- access vs bi
-  c <- access vs ci
-  d <- access vs di
+  a <- accessM vs ai
+  b <- accessM vs bi
+  c <- accessM vs ci
+  d <- accessM vs di
 
-  x <- access msg xi
-  y <- access msg yi
+  x <- accessM msg xi
+  y <- accessM msg yi
 
   -- Va ← Va + Vb + x   (with input)
   a <- W64.add a b
@@ -243,9 +243,9 @@ mix vs ai bi ci di msg xi yi = do
   b <- W64.rotateR 63 b
 
   -- write back to `vs`
-  update vs ai a
-  update vs bi b
-  update vs ci c
-  update vs di d
+  updateM vs ai a
+  updateM vs bi b
+  updateM vs ci c
+  updateM vs di d
 
   return ()

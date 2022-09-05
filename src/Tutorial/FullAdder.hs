@@ -7,10 +7,10 @@ import Keelung
 
 --------------------------------------------------------------------------------
 
-halfAdder :: Val 'Bool n -> Val 'Bool n -> (Val 'Bool n, Val 'Bool n)
+halfAdder :: Val 'Bool -> Val 'Bool -> (Val 'Bool, Val 'Bool)
 halfAdder a b = (a `Xor` b, a `And` b)
 
-testHalfAdder :: Comp GF181 (Val 'Unit GF181)
+testHalfAdder :: Comp (Val 'Unit)
 testHalfAdder = do
   a <- input
   b <- input
@@ -26,13 +26,13 @@ testHalfAdder = do
 
 --------------------------------------------------------------------------------
 
-fullAdder :: Val 'Bool n -> Val 'Bool n -> Val 'Bool n -> (Val 'Bool n, Val 'Bool n)
+fullAdder :: Val 'Bool -> Val 'Bool -> Val 'Bool -> (Val 'Bool, Val 'Bool)
 fullAdder a b carry = (value, nextCarry)
   where
     value = a `Xor` b `Xor` carry
     nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
 
-testFullAdder :: Comp GF181 (Val 'Unit GF181)
+testFullAdder :: Comp (Val 'Unit)
 testFullAdder = do
   a <- input
   b <- input
@@ -49,17 +49,17 @@ testFullAdder = do
 
 ------------------------------------------------------------------------------
 
-fullAdderN :: Int -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+fullAdderN :: Int -> Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 fullAdderN width as bs = do
   -- allocate a new array of `width` bits for the result of the addition
-  result <- toArray (replicate width false)
+  result <- toArrayM (replicate width false)
   -- 1-bit full adder
   foldM_
     ( \carry i -> do
-        a <- access as i
-        b <- access bs i
+        a <- accessM as i
+        b <- accessM bs i
         let (value, nextCarry) = fullAdder a b carry
-        update result i value
+        updateM result i value
         return nextCarry
     )
     false
@@ -67,16 +67,16 @@ fullAdderN width as bs = do
 
   return result
 
-testFullAdderN :: Int -> Comp GF181 (Val 'Unit GF181)
-testFullAdderN width = do
-  xs <- inputs width
-  ys <- inputs width
-  zs <- inputs width
-  zs' <- fullAdderN width xs ys
-
-  forM_ [0 .. width - 1] $ \i -> do
-    z <- access zs i
-    z' <- access zs' i
-    assert (z `BEq` z')
-
-  return unit
+-- testFullAdderN :: Int -> Comp (Val 'Unit)
+-- testFullAdderN width = do
+--   xs <- inputs width
+--   ys <- inputs width
+--   zs <- inputs width
+--   zs' <- fullAdderN width xs ys
+--
+--   forM_ [0 .. width - 1] $ \i -> do
+--     z <- accessM zs i
+--     z' <- accessM zs' i
+--     assert (z `BEq` z')
+--
+--   return unit

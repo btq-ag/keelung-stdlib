@@ -9,19 +9,19 @@ module Tutorial.TempConv where
 import Keelung
 
 -- | Convert a temperature from Celsius to Fahrenheit.
-celsiusToFahrenheit :: Comp GF181 (Val 'Num GF181)
+celsiusToFahrenheit :: Comp (Val 'Num)
 celsiusToFahrenheit = do
   degree <- input
   return ((degree * 9) / 5 + 32)
 
 -- | Convert a temperature from Fahrenheit to Celsius.
-fahrenheitToCelsius :: Comp GF181 (Val 'Num GF181)
+fahrenheitToCelsius :: Comp (Val 'Num)
 fahrenheitToCelsius = do
   degree <- input
   return ((degree - 32) * 5 / 9)
 
 -- | Convert a temperature from Celsius to Kelvin or Fahrenheit to Kelvin.
-dualConvert :: Comp GF181 (Val 'Num GF181)
+dualConvert :: Comp (Val 'Num)
 dualConvert = do
   toCelsius <- input
   degree <- input
