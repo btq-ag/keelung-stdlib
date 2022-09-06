@@ -7,7 +7,7 @@ import Control.Monad
 import Data.Bits (Bits (testBit))
 import Data.Word (Word32)
 import Keelung
-import qualified Lib.Array as Arr
+import qualified Lib.ArrayM as ArrayM
 import Lib.W8 (W8, W8M)
 import qualified Lib.W8 as W8
 
@@ -18,19 +18,19 @@ fromWord32 :: Word32 -> Comp (Val W32M)
 fromWord32 word = toArrayM $ map (Boolean . testBit word) [0 .. 31]
 
 equal :: Val W32M -> Val W32M -> Comp (Val 'Bool)
-equal = Arr.beq 32
+equal = ArrayM.beq 32
 
 zero :: Comp (Val W32M)
-zero = Arr.zeroBits 32
+zero = ArrayM.zeroBits 32
 
 zeros :: Int -> Comp (Val ('ArrM W32M))
-zeros n = zero >>= Arr.replicate n
+zeros n = zero >>= ArrayM.replicate n
 
 fromW8 :: Val W8M -> Comp (Val W32M)
-fromW8 = Arr.cast 32
+fromW8 = ArrayM.cast 32
 
 fromW8Chunks :: Val ('ArrM W8M) -> Comp (Val ('ArrM W32M))
-fromW8Chunks = Arr.flatten >=> Arr.chunks 32
+fromW8Chunks = ArrayM.flatten >=> ArrayM.chunks 32
 
 fromW8Chunks' :: Val ('Arr W8) -> Val ('Arr W32)
 fromW8Chunks' = W8.toWordNBE' 32

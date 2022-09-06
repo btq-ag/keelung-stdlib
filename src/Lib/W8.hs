@@ -6,8 +6,8 @@ import Control.Monad
 import Data.Bits (Bits (testBit))
 import Data.Word (Word8)
 import Keelung
-import qualified Lib.Array as Arr
-import qualified Lib.ArrayI as ArrI
+import qualified Lib.ArrayM as ArrayM
+import qualified Lib.Array as Array
 import Numeric (readHex)
 
 type W8M = 'ArrM 'Bool
@@ -27,23 +27,23 @@ fromString xs = mapM fromChar xs >>= toArrayM
 
 -- | Equality on W8
 equal :: Val W8M -> Val W8M -> Comp (Val 'Bool)
-equal = Arr.beq 8
+equal = ArrayM.beq 8
 
 zero :: Comp (Val W8M)
-zero = Arr.zeroBits 8
+zero = ArrayM.zeroBits 8
 
 zeros :: Int -> Comp (Val ('ArrM W8M))
-zeros n = zero >>= Arr.replicate n
+zeros n = zero >>= ArrayM.replicate n
 
 toW8Chunks :: Val ('ArrM ('ArrM 'Bool)) -> Comp (Val ('ArrM W8M))
-toW8Chunks = Arr.flatten >=> Arr.chunks 8
+toW8Chunks = ArrayM.flatten >=> ArrayM.chunks 8
 
 ----
 zero' :: Val W8
-zero' = ArrI.zeroBits 8
+zero' = Array.zeroBits 8
 
 zeros' :: Int -> Val ('Arr W8)
-zeros' n = ArrI.replicate n zero'
+zeros' n = Array.replicate n zero'
 
 -- | `fromWord8` implemented with immutable arrays
 fromWord8' :: Word8 -> Val W8
@@ -59,27 +59,27 @@ fromString' = toArray . map fromChar'
 
 -- [A, B, C, D, ...] -> [[D C B A], ...]
 toWordNBE' :: Int -> Val ('Arr W8) -> Val ('Arr ('Arr 'Bool))
-toWordNBE' n = ArrI.chunkReverse (n `div` 8) . ArrI.concat . ArrI.chunks n
+toWordNBE' n = Array.chunkReverse (n `div` 8) . Array.concat . Array.chunks n
 
 -- [[D C B A], ...] -> [A, B, C, D, ...]
 fromWordNBE' :: Val ('Arr ('Arr 'Bool)) -> Val ('Arr W8)
 fromWordNBE' xs =
     let n = lengthOf xs in
-    let xs' = ArrI.chunks 8 (ArrI.concat xs) in
-    ArrI.chunkReverse (n `div` 8) xs'
+    let xs' = Array.chunks 8 (Array.concat xs) in
+    Array.chunkReverse (n `div` 8) xs'
 
 toW8Chunks' :: Val ('Arr ('Arr 'Bool)) -> Val ('Arr W8)
-toW8Chunks' = ArrI.chunks 8 . ArrI.concat
+toW8Chunks' = Array.chunks 8 . Array.concat
 
 ---
 pad' :: Val ('Arr W8) -> Int -> Val ('Arr W8)
 pad' xs len =
     let len' = lengthOf xs in
     let p = zeros' (len - len' `mod` len) in
-    ArrI.concatenate xs p
+    Array.concatenate xs p
 
 equal' :: Val W8 -> Val W8 -> Val 'Bool
-equal' = ArrI.beq
+equal' = Array.beq
 
 add' :: Val W8 -> Val W8 -> Val W8
-add' = ArrI.fullAdder
+add' = Array.fullAdder
