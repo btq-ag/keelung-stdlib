@@ -27,7 +27,6 @@ library
   exposed-modules:
       BLAKE2b
       Lib.Array
-      Lib.ArrayI
       Lib.ArrayM
       Lib.TestI
       Lib.W32
@@ -57,7 +56,6 @@ test-suite keelung-examples-test
       Test.Lib.Array
       BLAKE2b
       Lib.Array
-      Lib.ArrayI
       Lib.ArrayM
       Lib.TestI
       Lib.W32

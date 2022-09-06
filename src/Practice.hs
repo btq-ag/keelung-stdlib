@@ -2,8 +2,6 @@
 
 module Practice where
 
-import Control.Monad
-import Data.Field.Galois (GaloisField)
 import Keelung
 
 -- Given a number `n` and an array of numbers `xs`

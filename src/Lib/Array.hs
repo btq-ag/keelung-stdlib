@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
+
 module Lib.Array where
-import Control.Monad
-import Data.Bifunctor
+
 import Keelung
 import Prelude hiding (drop, map, replicate, take)
 import qualified Prelude
@@ -16,7 +16,6 @@ beq as bs =
     [0 .. lengthOf as - 1]
 
 --------------------------------------------------------------------------------
-
 
 map :: (Val a -> Val b) -> Val ('Arr a) -> Val ('Arr b)
 map f = toArray . Prelude.map f . fromArray
@@ -51,9 +50,12 @@ zeroBits = flip replicate false
 
 -- | Rotate left by 'n' bits
 rotate :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
-rotate n xs =
-  let n' = (lengthOf xs - n) `mod` lengthOf xs
-   in concatenate (Lib.Array.drop n' xs) (Lib.Array.take n' xs)
+rotate n xs = 
+    let n' = n `mod` lengthOf xs
+     in concatenate (Lib.Array.drop n' xs) (Lib.Array.take n' xs)
+  -- | otherwise =
+  --   let n' = n `mod` lengthOf xs
+  --    in concatenate (Lib.Array.drop n' xs) (Lib.Array.take n' xs)
 
 rotateL :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
 rotateL = rotate
@@ -63,11 +65,14 @@ rotateR = rotate . negate
 
 -- | Shift left by 'n' bits (false-fill)
 shift :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
-shift n xs =
-  toArray $
-    if n > 0
-      then Prelude.drop n (fromArray xs) <> Prelude.replicate n false
-      else Prelude.replicate (lengthOf xs + n) false <> Prelude.take (lengthOf xs + n) (fromArray xs)
+shift n xs
+  | n >= len = toArray $ Prelude.replicate len false
+  | n > 0 = toArray $ Prelude.drop n (fromArray xs) <> Prelude.replicate n false
+  | n == 0 = xs
+  | n >= (-len) = toArray $ Prelude.replicate (-n) false <> Prelude.take (len + n) (fromArray xs)
+  | otherwise = toArray $ Prelude.replicate len false
+  where
+    len = lengthOf xs
 
 shiftL :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
 shiftL = shift
@@ -112,6 +117,6 @@ fullAdder as bs =
   where
     f :: ([Val 'Bool], Val 'Bool) -> (Val 'Bool, Val 'Bool) -> ([Val 'Bool], Val 'Bool)
     f (acc, carry) (a, b) =
-      let value = a `Xor` b `Xor` carry 
+      let value = a `Xor` b `Xor` carry
           nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
        in (acc ++ [value], nextCarry)

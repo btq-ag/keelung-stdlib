@@ -2,7 +2,6 @@
 
 module Tutorial.FullAdder where
 
-import Control.Monad (foldM_, forM_)
 import Keelung
 
 ------------------------------------------------------------------------------

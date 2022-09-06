@@ -8,7 +8,6 @@ import Data.Word (Word8)
 import Keelung
 import qualified Lib.ArrayM as ArrayM
 import qualified Lib.Array as Array
-import Numeric (readHex)
 
 
 type W8M = 'ArrM 'Bool

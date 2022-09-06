@@ -139,21 +139,6 @@ bitOp op as bs = do
   bs' <- fromArrayM bs
   toArrayM $ zipWith op as' bs'
 
-or' :: Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool))
-or' = bitOp' Or
-
-and' :: Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool))
-and' = bitOp' And
-
-xor' :: Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool))
-xor' = bitOp' Xor
-
-bitOp' :: (Val 'Bool -> Val 'Bool -> Val 'Bool) -> Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool))
-bitOp' op as bs = do
-  as' <- fromArrayM =<< as
-  bs' <- fromArrayM =<< bs
-  toArrayM $ zipWith op as' bs'
-
 flatten :: Mutable t => Val ('ArrM ('ArrM t)) -> Comp (Val ('ArrM t))
 flatten = fromArrayM >=> foldM (\ys x -> (ys <>) <$> fromArrayM x) [] >=> toArrayM
 

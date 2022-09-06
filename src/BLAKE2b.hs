@@ -8,9 +8,6 @@ module BLAKE2b where
 
 import Control.Monad
 import Data.Bits
-import Data.Int
--- import Data.WideWord (Int128)
--- import qualified Data.WideWord.Int128 as Int128
 
 import Data.WideWord.Word128 (Word128)
 import qualified Data.WideWord.Word128 as Word128
@@ -21,10 +18,6 @@ import Lib.W64 (W64M)
 import qualified Lib.W64 as W64
 import Lib.W8 (W8M)
 import qualified Lib.W8 as W8
-import Data.Char
-import Debug.Trace
-import Lib.ArrayM (beq)
-import qualified GHC.Generics as W8
 import qualified Crypto.Hash.BLAKE2.BLAKE2b
 import qualified Data.ByteString.Char8 as ByteString.Char8
 
