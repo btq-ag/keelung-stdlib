@@ -2,7 +2,7 @@
 module Lib.TestI where
 
 import Keelung hiding (access, update)
-import qualified Lib.ArrayI as ArrayI
+import qualified Lib.Array as Array
 import Lib.W8 as W8
 
 testAdder :: Comp (Val 'Unit)

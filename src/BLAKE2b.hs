@@ -16,14 +16,14 @@ import Data.WideWord.Word128 (Word128)
 import qualified Data.WideWord.Word128 as Word128
 import Data.Word
 import Keelung
-import qualified Lib.Array as Array
-import Lib.W64 (W64)
+import qualified Lib.ArrayM as ArrayM
+import Lib.W64 (W64M)
 import qualified Lib.W64 as W64
-import Lib.W8 (W8)
+import Lib.W8 (W8M)
 import qualified Lib.W8 as W8
 import Data.Char
 import Debug.Trace
-import Lib.Array (beq)
+import Lib.ArrayM (beq)
 import qualified GHC.Generics as W8
 import qualified Crypto.Hash.BLAKE2.BLAKE2b
 import qualified Data.ByteString.Char8 as ByteString.Char8
@@ -85,12 +85,12 @@ test = do
 
 hash ::
   -- | Message to be hashed
-  Val ('ArrM W8) ->
+  Val ('ArrM W8M) ->
   -- | Length of the message in bytes (0..2^128)
   Int ->
   -- | Desired hash length in bytes (1..64)
   Int ->
-  Comp (Val ('ArrM W8))
+  Comp (Val ('ArrM W8M))
 hash msg msgLen hashLen = do
   --  Initialize State vector h with IV
   hash <- mapM W64.fromWord64 iv >>= toArrayM
@@ -102,18 +102,18 @@ hash msg msgLen hashLen = do
   updateM hash 0 h0
 
   forM_ [0,128 .. msgLen - 128-1] $ \i -> do
-    chunk <- Array.drop i msg
+    chunk <- ArrayM.drop i msg
     compress hash chunk (fromIntegral (i + 128)) False
 
   --  Compress the final bytes
-  remain <- Array.drop (msgLen `div` 128 * 128) msg
+  remain <- ArrayM.drop (msgLen `div` 128 * 128) msg
   chunk <- pad remain 128
   compress hash chunk (fromIntegral msgLen) True
 
   -- ref <- W64.fromWord64 0x0D4D1C983FA580BA
   -- assert =<< W64.equal ref =<< accessM hash 0
 
-  Array.take hashLen =<< W64.toW8Chunks hash
+  ArrayM.take hashLen =<< W64.toW8Chunks hash
 
   where
     -- from key size ('kk') and desired hash length ('nn')
@@ -123,18 +123,18 @@ hash msg msgLen hashLen = do
     x0101kknn = 0x01010000 + (0 `shiftL` 8) + hashLen
 
 -- | Padding a message with `false` to the desired length
-pad :: Val ('ArrM W8) -> Int -> Comp (Val ('ArrM W8))
+pad :: Val ('ArrM W8M) -> Int -> Comp (Val ('ArrM W8M))
 pad xs len =
   let len' = lengthOfM xs
    in if len' >= len
         then return xs
         else do
           xs' <- W8.zeros (len - len')
-          Array.concatenate xs xs'
+          ArrayM.concatenate xs xs'
 
 compress ::
-  Val ('ArrM W64) -> -- 128 bytes of old hash value
-  Val ('ArrM W64) -> -- 128 bytes of message to compress
+  Val ('ArrM W64M) -> -- 128 bytes of old hash value
+  Val ('ArrM W64M) -> -- 128 bytes of message to compress
   Word128 -> -- count of bytes that have been compressed before
   Bool -> -- is this the final round of compression?
   Comp ()
@@ -201,12 +201,12 @@ compress hash msg count final = do
     updateM hash i x
 
 mix ::
-  Val ('ArrM W64) ->
+  Val ('ArrM W64M) ->
   Int ->
   Int ->
   Int ->
   Int ->
-  Val ('ArrM W64) ->
+  Val ('ArrM W64M) ->
   Int ->
   Int ->
   Comp ()

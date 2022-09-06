@@ -6,41 +6,42 @@ import Control.Monad
 import Data.Bits (Bits (testBit))
 import Data.Word (Word64)
 import Keelung
-import qualified Lib.Array as Arr
+import qualified Lib.ArrayM as ArrayM
 
-import Lib.W8 (W8)
+import Lib.W8 (W8, W8M)
 import GHC.Natural
 
 
-type W64 = 'ArrM 'Bool
+type W64M = 'ArrM 'Bool
+type W64 = 'Arr 'Bool
 
-fromWord64 :: Word64 -> Comp (Val W64)
+fromWord64 :: Word64 -> Comp (Val W64M)
 fromWord64 word = toArrayM $ map (Boolean . testBit word) [0 .. 63]
 
-zero :: Comp (Val W64)
-zero = Arr.zeroBits 64
+zero :: Comp (Val W64M)
+zero = ArrayM.zeroBits 64
 
-zeros :: Int -> Comp (Val ('ArrM W64))
-zeros n = zero >>= Arr.replicate n
+zeros :: Int -> Comp (Val ('ArrM W64M))
+zeros n = zero >>= ArrayM.replicate n
 
 -- | Rotates right by i bits if i is positive, or right by -i bits otherwise.
-rotateR :: Natural -> Val W64 -> Comp (Val W64)
-rotateR = Arr.rotateR
+rotateR :: Natural -> Val W64M -> Comp (Val W64M)
+rotateR = ArrayM.rotateR
 
-add :: Val W64 -> Val W64 -> Comp (Val W64)
-add = Arr.fullAdder 64
+add :: Val W64M -> Val W64M -> Comp (Val W64M)
+add = ArrayM.fullAdder 64
 
-xor :: Val W64 -> Val W64 -> Comp (Val W64)
-xor = Arr.xorOld 64
+xor :: Val W64M -> Val W64M -> Comp (Val W64M)
+xor = ArrayM.xorOld 64
 
-complement :: Val W64 -> Comp (Val W64)
-complement = Arr.map neg
+complement :: Val W64M -> Comp (Val W64M)
+complement = ArrayM.map neg
 
-equal :: Val W64 -> Val W64 -> Comp (Val 'Bool)
-equal = Arr.beq 64
+equal :: Val W64M -> Val W64M -> Comp (Val 'Bool)
+equal = ArrayM.beq 64
 
-fromW8Chunks :: Val ('ArrM W8) -> Comp (Val ('ArrM W64))
-fromW8Chunks = Arr.flatten >=> Arr.chunks 64
+fromW8Chunks :: Val ('ArrM W8M) -> Comp (Val ('ArrM W64M))
+fromW8Chunks = ArrayM.flatten >=> ArrayM.chunks 64
 
-toW8Chunks :: Val ('ArrM W64) -> Comp (Val ('ArrM W8))
-toW8Chunks = Arr.flatten >=> Arr.chunks 8
+toW8Chunks :: Val ('ArrM W64M) -> Comp (Val ('ArrM W8M))
+toW8Chunks = ArrayM.flatten >=> ArrayM.chunks 8
