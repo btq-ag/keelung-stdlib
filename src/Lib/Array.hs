@@ -1,9 +1,8 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE MultiWayIf #-}
 module Lib.Array where
 import Control.Monad
 import Data.Bifunctor
-import Keelung hiding (update)
+import Keelung
 import Prelude hiding (drop, map, replicate, take)
 import qualified Prelude
 
@@ -65,10 +64,10 @@ rotateR = rotate . negate
 -- | Shift left by 'n' bits (false-fill)
 shift :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
 shift n xs =
-  let l = lengthOf xs
-   in if n > 0
-        then concatenate (map (const false) (take n xs)) (take (l - n) xs)
-        else concatenate (drop (-n) xs) (map (const false) (take (-n) xs))
+  toArray $
+    if n > 0
+      then Prelude.drop n (fromArray xs) <> Prelude.replicate n false
+      else Prelude.replicate (lengthOf xs + n) false <> Prelude.take (lengthOf xs + n) (fromArray xs)
 
 shiftL :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
 shiftL = shift
@@ -98,21 +97,6 @@ chunks n = toArray . Prelude.map toArray . group n . fromArray
 chunkReverse :: Int -> Val ('Arr t) -> Val ('Arr t)
 chunkReverse n = toArray . concatMap Prelude.reverse . group n . fromArray
 
-update :: Int -> Val t -> Val ('Arr t) -> Val ('Arr t)
-update i x xs =
-  concatenate (take i xs) (cons x (drop (i + 1) xs))
-
-xorOld :: Int -> Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
-xorOld = bitOpOld Xor
-
-bitOpOld :: (Val 'Bool -> Val 'Bool -> Val 'Bool) -> Int -> Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
-bitOpOld op l as bs = do
-  bits <- forM [0 .. (l - 1)] $ \i -> do
-    a <- accessM as i
-    b <- accessM bs i
-    return (a `op` b)
-  toArrayM bits
-
 --------------------------------------------------------------------------------
 
 group :: Int -> [a] -> [[a]]
@@ -121,18 +105,13 @@ group n l
   | n > 0 = Prelude.take n l : group n (Prelude.drop n l)
   | otherwise = error "Negative or zero"
 
-fullAdder1bit :: Val 'Bool -> Val 'Bool -> Val 'Bool -> (Val 'Bool, Val 'Bool)
-fullAdder1bit a b carry =
-  let value = a `Xor` b `Xor` carry
-   in let nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
-       in (value, nextCarry)
-
 fullAdder :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
 fullAdder as bs =
-  toArray . fst $
-    foldl
-      ( \(result, carry) (a, b) -> do
-          first (: result) $ fullAdder1bit a b carry
-      )
-      ([], false)
-      (zip (fromArray as) (fromArray bs))
+  let zipped = zip (fromArray as) (fromArray bs)
+   in toArray $ fst $ foldl f ([], false) zipped
+  where
+    f :: ([Val 'Bool], Val 'Bool) -> (Val 'Bool, Val 'Bool) -> ([Val 'Bool], Val 'Bool)
+    f (acc, carry) (a, b) =
+      let value = a `Xor` b `Xor` carry 
+          nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
+       in (acc ++ [value], nextCarry)
