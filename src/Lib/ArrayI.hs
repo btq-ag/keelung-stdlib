@@ -3,8 +3,8 @@
 module Lib.ArrayI where
 
 import Control.Monad
-import Keelung
-import qualified Lib.Array as Mutable
+import Data.Bifunctor
+import Keelung hiding (access, update)
 import Prelude hiding (replicate)
 import qualified Prelude
 
@@ -15,6 +15,10 @@ beq as bs =
     (\acc (a, b) -> acc `And` (a `BEq` b))
     true
     (zip (fromArray as) (fromArray bs))
+
+foldM ::
+  (Val b -> Val a -> Comp (Val b)) -> Val b -> Val ('Arr a) -> Comp (Val b)
+foldM f z xs = Control.Monad.foldM f z (fromArray xs)
 
 -- | `map` for Keelung arrays
 map :: (Val a -> Val b) -> Val ('Arr a) -> Val ('Arr b)
@@ -35,6 +39,12 @@ reverse = toArray . Prelude.reverse . fromArray
 
 replicate :: Int -> Val t -> Val ('Arr t)
 replicate n x = toArray $ Prelude.replicate n x
+
+take :: Int -> Val ('Arr a) -> Val ('Arr a)
+take n = toArray . Prelude.take n . fromArray
+
+drop :: Int -> Val ('Arr a) -> Val ('Arr a)
+drop n = toArray . Prelude.drop n . fromArray
 
 zeroBits :: Int -> Val ('Arr 'Bool)
 zeroBits n = replicate n false
@@ -89,6 +99,33 @@ xor' = bitOp Xor
 flatten :: Val ('Arr ('Arr t)) -> Val ('Arr t)
 flatten = toArray . Prelude.concat . mapM fromArray . fromArray
 
+chunkReverse :: Int -> Val ('Arr t) -> Val ('Arr t)
+chunkReverse n = toArray . concatMap Prelude.reverse . group n . fromArray
+
+update :: Int -> Val t -> Val ('Arr t) -> Val ('Arr t)
+update i x xs = 
+  let xs' = fromArray xs
+  in  toArray $ Prelude.take i xs' <> (x : Prelude.drop (i + 1) xs')
+
+--------------------------------------------------------------------------------
+
+group :: Int -> [a] -> [[a]]
+group _ [] = []
+group n l
+  | n > 0 = Prelude.take n l : group n (Prelude.drop n l)
+  | otherwise = error "Negative or zero n"
+
+fullAdder :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+fullAdder as bs =
+  let zipped = zip (fromArray as) (fromArray bs)
+   in toArray $ fst $ foldl f ([], false) zipped
+  where
+    f :: ([Val 'Bool], Val 'Bool) -> (Val 'Bool, Val 'Bool) -> ([Val 'Bool], Val 'Bool)
+    f (acc, carry) (a, b) =
+      let value = a `Xor` b `Xor` carry
+          nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
+       in (acc ++ [value], nextCarry)
+
 cast :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
 cast n xs = cast' n (fromArray xs)
 
@@ -98,9 +135,3 @@ cast' n xs = toArray $ xs ++ Prelude.replicate (n - length xs) false
 
 chunks :: Int -> Val ('Arr 'Bool) -> Val ('Arr ('Arr 'Bool))
 chunks n = toArray . fmap toArray . group n . fromArray
-  where
-    group :: Int -> [a] -> [[a]]
-    group _ [] = []
-    group n l
-      | n > 0 = take n l : group n (drop n l)
-      | otherwise = error "Negative or zero n"
