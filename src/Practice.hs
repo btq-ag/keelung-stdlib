@@ -13,18 +13,18 @@ import Keelung
 --      2. xs : 'Arr 'Num (of length 4)
 --  Output:
 --      1. 'Num
-problem1 :: Comp GF181 (Val 'Num GF181)
+problem1 :: Comp (Val 'Num)
 problem1 = undefined
 
-answer1 :: Comp GF181 (Val 'Num GF181)
+answer1 :: Comp (Val 'Num)
 answer1 = do
   n <- input
   xs <- inputs 4
 
-  x0 <- access xs 0
-  x1 <- access xs 1
-  x2 <- access xs 2
-  x3 <- access xs 3
+  let x0 = access xs 0
+  let x1 = access xs 1
+  let x2 = access xs 2
+  let x3 = access xs 3
 
   return $
     cond

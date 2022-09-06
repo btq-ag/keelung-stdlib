@@ -25,204 +25,200 @@ module Lib.Array
     flatten,
     cast,
     chunks,
-    fullAdder
+    fullAdder,
   )
 where
 
 import Control.Monad
-import Numeric.Natural
 import Keelung
+import Numeric.Natural
 
 -- | See if 2 bit arrays of length `width` are equal.
-beq :: Int -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val 'Bool n)
+beq :: Int -> Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val 'Bool)
 beq width as bs =
   foldM
     ( \acc i -> do
-        a <- access as i
-        b <- access bs i
+        a <- accessM as i
+        b <- accessM bs i
         return (acc `And` (a `BEq` b))
     )
     true
     [0 .. width - 1]
 
 -- | `map` for Keelung arrays
-map :: (Referable a, Referable b) => (Val a n -> Val b n) -> Val ('Arr a) n -> Comp n (Val ('Arr b) n)
+map :: (Mutable a, Mutable b) => (Val a -> Val b) -> Val ('ArrM a) -> Comp (Val ('ArrM b))
 map f xs = do
-  xs' <- fromArray xs
-  toArray (Prelude.map f xs')
+  xs' <- fromArrayM xs
+  toArrayM (Prelude.map f xs')
 
 -- | Array concatenation
-concatenate :: Referable a => Val ('Arr a) n -> Val ('Arr a) n -> Comp n (Val ('Arr a) n)
+concatenate :: Mutable a => Val ('ArrM a) -> Val ('ArrM a) -> Comp (Val ('ArrM a))
 concatenate xs ys = do
-  xs' <- fromArray xs
-  ys' <- fromArray ys
-  toArray (xs' <> ys')
+  xs' <- fromArrayM xs
+  ys' <- fromArrayM ys
+  toArrayM (xs' <> ys')
 
-cons :: Referable a => Val a n -> Val ('Arr a) n -> Comp n (Val ('Arr a) n)
+cons :: Mutable a => Val a -> Val ('ArrM a) -> Comp (Val ('ArrM a))
 cons x xs = do
-  xs' <- fromArray xs
-  toArray (x : xs')
+  xs' <- fromArrayM xs
+  toArrayM (x : xs')
 
-singleton :: Referable a => Val a n -> Comp n (Val ('Arr a) n)
-singleton x = toArray [x]
+singleton :: Mutable a => Val a -> Comp (Val ('ArrM a))
+singleton x = toArrayM [x]
 
-reverse :: Referable a => Val ('Arr a) n -> Comp n (Val ('Arr a) n)
+reverse :: Mutable a => Val ('ArrM a) -> Comp (Val ('ArrM a))
 reverse xs = do
-  xs' <- fromArray xs
-  toArray (Prelude.reverse xs')
+  xs' <- fromArrayM xs
+  toArrayM (Prelude.reverse xs')
 
-replicate :: Referable t => Int -> Val t n -> Comp n (Val ('Arr t) n)
-replicate n x = toArray $ Prelude.replicate n x
+replicate :: Mutable t => Int -> Val t -> Comp (Val ('ArrM t))
+replicate n x = toArrayM $ Prelude.replicate n x
 
-take :: Referable a => Int -> Val ('Arr a) n -> Comp n (Val ('Arr a) n)
+take :: Mutable a => Int -> Val ('ArrM a) -> Comp (Val ('ArrM a))
 take n xs = do
-  xs' <- fromArray xs
-  toArray (Prelude.take n xs')
+  xs' <- fromArrayM xs
+  toArrayM (Prelude.take n xs')
 
-drop :: Referable a => Int -> Val ('Arr a) n -> Comp n (Val ('Arr a) n)
+drop :: Mutable a => Int -> Val ('ArrM a) -> Comp (Val ('ArrM a))
 drop n xs = do
-  xs' <- fromArray xs
-  toArray (Prelude.drop n xs')
+  xs' <- fromArrayM xs
+  toArrayM (Prelude.drop n xs')
 
-
-zeroBits :: Int -> Comp n (Val ('Arr 'Bool) n)
+zeroBits :: Int -> Comp (Val ('ArrM 'Bool))
 zeroBits n = Lib.Array.replicate n false
 
 -- | Rotate left by i bits if i is positive, or right by -i bits otherwise
-rotate :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+rotate :: Int -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 rotate n xs = do
-  xs' <- fromArray xs
+  xs' <- fromArrayM xs
   let l = length xs'
   result <- Lib.Array.replicate l false
-  forM_ (zip [0 .. l - 1] xs')$ \(i, x) -> do
+  forM_ (zip [0 .. l - 1] xs') $ \(i, x) -> do
     let i' = (i + n) `mod` l
-    update result i' x
+    updateM result i' x
   return result
 
-rotateL :: Natural -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+rotateL :: Natural -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 rotateL = rotate . fromIntegral
 
-rotateR :: Natural -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+rotateR :: Natural -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 rotateR = rotate . negate . fromIntegral
 
 -- | Shift left by i bits if i is positive, or right by -i bits otherwise
-shift :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+shift :: Int -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 shift n xs = do
-  xs' <- fromArray xs
+  xs' <- fromArrayM xs
   let l = length xs'
   result <- Lib.Array.replicate l false
   let rng =
         if n >= 0
           then [0 .. n - 1]
           else [-n .. l - 1]
-  forM_ (zip rng xs') $ \(i, x) -> update result (i + n) x
+  forM_ (zip rng xs') $ \(i, x) -> updateM result (i + n) x
   return result
 
-shiftL :: Natural -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+shiftL :: Natural -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 shiftL = shift . fromIntegral
 
-shiftR :: Natural -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+shiftR :: Natural -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 shiftR = shift . negate . fromIntegral
 
-or :: Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+or :: Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 or = bitOp Or
 
-and :: Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+and :: Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 and = bitOp And
 
-xor :: Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+xor :: Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 xor = bitOp Xor
 
-bitOp :: (Val 'Bool n -> Val 'Bool n -> Val 'Bool n) -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+bitOp :: (Val 'Bool -> Val 'Bool -> Val 'Bool) -> Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 bitOp op as bs = do
-  as' <- fromArray as
-  bs' <- fromArray bs
-  toArray $ zipWith op as' bs'
+  as' <- fromArrayM as
+  bs' <- fromArrayM bs
+  toArrayM $ zipWith op as' bs'
 
-or' :: Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n)
+or' :: Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool))
 or' = bitOp' Or
 
-and' :: Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n)
+and' :: Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool))
 and' = bitOp' And
 
-xor' :: Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n)
+xor' :: Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool))
 xor' = bitOp' Xor
 
-bitOp' :: (Val 'Bool n -> Val 'Bool n -> Val 'Bool n) -> Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n) -> Comp n (Val ('Arr 'Bool) n)
+bitOp' :: (Val 'Bool -> Val 'Bool -> Val 'Bool) -> Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool))
 bitOp' op as bs = do
-  as' <- fromArray =<< as
-  bs' <- fromArray =<< bs
-  toArray $ zipWith op as' bs'
+  as' <- fromArrayM =<< as
+  bs' <- fromArrayM =<< bs
+  toArrayM $ zipWith op as' bs'
 
-flatten :: Referable t => Val ('Arr ('Arr t)) n -> Comp n (Val ('Arr t) n)
-flatten = fromArray >=> foldM (\ys x -> (ys <>) <$> fromArray x) [] >=> toArray
+flatten :: Mutable t => Val ('ArrM ('ArrM t)) -> Comp (Val ('ArrM t))
+flatten = fromArrayM >=> foldM (\ys x -> (ys <>) <$> fromArrayM x) [] >=> toArrayM
 
-cast :: Int -> Val ('Arr 'Bool) n -> Comp n (Val (Arr 'Bool) n)
-cast n xs = fromArray xs >>= cast' n
+cast :: Int -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
+cast n xs = fromArrayM xs >>= cast' n
 
 -- | length xs < n
-cast' :: Int -> [Val 'Bool n] -> Comp n (Val (Arr 'Bool) n)
-cast' n xs = toArray $ xs ++ Prelude.replicate (n - length xs) false
+cast' :: Int -> [Val 'Bool] -> Comp (Val ('ArrM 'Bool))
+cast' n xs = toArrayM $ xs ++ Prelude.replicate (n - length xs) false
 
-chunks :: Int -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr ('Arr 'Bool)) n)
-chunks n xs = fromArray xs >>= f
+chunks :: Int -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM ('ArrM 'Bool)))
+chunks n xs = fromArrayM xs >>= f
   where
-    f :: [Val 'Bool n] -> Comp n (Val ('Arr ('Arr 'Bool)) n)
+    f :: [Val 'Bool] -> Comp (Val ('ArrM ('ArrM 'Bool)))
     f xs =
       let size = length xs
        in if
               | size > n -> do
                 let (xs1, xs2) = splitAt n xs
-                join $ cons <$> toArray xs1 <*> f xs2
-              | size == n -> singleton =<< toArray xs
+                join $ cons <$> toArrayM xs1 <*> f xs2
+              | size == n -> singleton =<< toArrayM xs
               | otherwise -> singleton =<< cast' n xs
-
 
 --------------------------------------------------------------------------------
 
-fullAdder1bit :: Val 'Bool n -> Val 'Bool n -> Val 'Bool n -> (Val 'Bool n, Val 'Bool n)
+fullAdder1bit :: Val 'Bool -> Val 'Bool -> Val 'Bool -> (Val 'Bool, Val 'Bool)
 fullAdder1bit a b carry =
   let value = a `Xor` b `Xor` carry
       nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
    in (value, nextCarry)
 
-fullAdder :: Int -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+fullAdder :: Int -> Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 fullAdder width as bs = do
   -- allocate a new array of 64 bits for the result of the addition
   result <- zeroBits width
   -- 1-bit full adder
   foldM_
     ( \carry i -> do
-        a <- access as i
-        b <- access bs i
+        a <- accessM as i
+        b <- accessM bs i
         let (value, nextCarry) = fullAdder1bit a b carry
-        update result i value
+        updateM result i value
         return nextCarry
     )
     false
     [0 .. width - 1]
   return result
 
-testFullAdder :: Int -> Comp GF181 (Val 'Unit GF181)
+testFullAdder :: Int -> Comp (Val 'Unit)
 testFullAdder width = do
-  as <- inputs width
-  bs <- inputs width
-  cs <- inputs width
+  as <- toArrayM . fromArray =<< inputs width
+  bs <- toArrayM . fromArray =<< inputs width
+  cs <- toArrayM . fromArray =<< inputs width
   cs' <- fullAdder width as bs
-
   beq width cs cs' >>= assert
-
   return unit
 
 -----------
 
-xorOld :: Int -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+xorOld :: Int -> Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 xorOld = bitOpOld Xor
 
-bitOpOld :: (Val 'Bool n -> Val 'Bool n -> Val 'Bool n) -> Int -> Val ('Arr 'Bool) n -> Val ('Arr 'Bool) n -> Comp n (Val ('Arr 'Bool) n)
+bitOpOld :: (Val 'Bool -> Val 'Bool -> Val 'Bool) -> Int -> Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
 bitOpOld op l as bs = do
   bits <- forM [0 .. (l - 1)] $ \i -> do
-    a <- access as i
-    b <- access bs i
+    a <- accessM as i
+    b <- accessM bs i
     return (a `op` b)
-  toArray bits
+  toArrayM bits
