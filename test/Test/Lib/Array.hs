@@ -72,36 +72,36 @@ propArrayRotateInverse n xs = monadicIO $ do
 
   Test.QuickCheck.Monadic.assert (actual' == expected')
   where
-    f = toArray . map Boolean
+    f = Array.map' Boolean
 
 propShiftL :: Int -> [Bool] -> Property
 propShiftL n xs = monadicIO $ do
   propWrap $ do
-    let actual = Array.shiftL n . toArray . map Boolean $ xs
-    let expect = toArray . map Boolean . shift n $ xs
+    let actual = Array.shiftL n . Array.map' Boolean $ xs
+    let expect = Array.map' Boolean . shift n $ xs
     Keelung.assert $ Array.beq actual expect
 
 propShiftR :: Int -> [Bool] -> Property
 propShiftR n xs = monadicIO $ do
   propWrap $ do
-    let actual = Array.shiftR n . toArray . map Boolean $ xs
-    let expect = toArray . map Boolean . shift (-n) $ xs
+    let actual = Array.shiftR n . Array.map' Boolean $ xs
+    let expect = Array.map' Boolean . shift (-n) $ xs
     Keelung.assert $ Array.beq actual expect
 
 propRotateL :: Int -> [Bool] -> Property
 propRotateL n xs = monadicIO $ do
   pre (not (null xs))
   propWrap $ do
-    let actual = Array.rotateL n . toArray . map Boolean $ xs
-    let expect = toArray . map Boolean . rotate n $ xs
+    let actual = Array.rotateL n . Array.map' Boolean $ xs
+    let expect = Array.map' Boolean . rotate n $ xs
     Keelung.assert $ Array.beq actual expect
 
 propRotateR :: Int -> [Bool] -> Property
 propRotateR n xs = monadicIO $ do
   pre (not (null xs))
   propWrap $ do
-    let actual = Array.rotateR n . toArray . map Boolean $ xs
-    let expect = toArray . map Boolean . rotate (-n) $ xs
+    let actual = Array.rotateR n . Array.map' Boolean $ xs
+    let expect = Array.map' Boolean . rotate (-n) $ xs
     Keelung.assert $ Array.beq actual expect
 
 assertEqWrap :: (Val ('Arr 'Bool) -> Val ('Arr 'Bool)) -> [Bool] -> [Bool] -> Assertion
@@ -110,7 +110,7 @@ assertEqWrap func actual expect = do
   expect' <- interpret_ GF181 (return (toBitArr expect)) ([] :: [GF181])
   fmap (map N) actual' @?= fmap (map N) expect'
   where
-    toBitArr = toArray . map Boolean
+    toBitArr = Array.map' Boolean
 
 propWrap :: Comp t -> PropertyM IO ()
 propWrap comp = do

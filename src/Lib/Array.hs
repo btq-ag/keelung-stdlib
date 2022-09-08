@@ -18,7 +18,10 @@ beq as bs =
 --------------------------------------------------------------------------------
 
 map :: (Val a -> Val b) -> Val ('Arr a) -> Val ('Arr b)
-map f = toArray . Prelude.map f . fromArray
+map f = map' f . fromArray
+
+map' :: (a -> Val b) -> [a] -> Val ('Arr b)
+map' f = toArray . Prelude.map f
 
 -- | Array concatenation
 concatenate :: Val ('Arr a) -> Val ('Arr a) -> Val ('Arr a)
