@@ -58,7 +58,7 @@ zeroBits = flip replicate false
 
 -- | Rotate left by 'n' bits
 rotate :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
-rotate n xs = 
+rotate n xs =
     let n' = n `mod` lengthOf xs
      in concatenate (Lib.Array.drop n' xs) (Lib.Array.take n' xs)
   -- | otherwise =
