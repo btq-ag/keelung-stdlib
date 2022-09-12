@@ -4,10 +4,12 @@
 module Lib.W32 where
 
 import Control.Monad
-import Data.Bits (Bits (testBit))
-import Data.Word (Word32)
+import Data.Bits (Bits (testBit), (.|.), shiftL)
+import Data.Word (Word8, Word32)
+import Data.List (foldl')
 import Keelung
 import qualified Lib.ArrayM as ArrayM
+import qualified Lib.Array as Array
 import Lib.W8 (W8, W8M)
 import qualified Lib.W8 as W8
 
@@ -32,11 +34,23 @@ fromW8 = ArrayM.cast 32
 fromW8Chunks :: Val ('ArrM W8M) -> Comp (Val ('ArrM W32M))
 fromW8Chunks = ArrayM.flatten >=> ArrayM.chunks 32
 
+--------------------------------------------------------------
+
 fromW8Chunks' :: Val ('Arr W8) -> Val ('Arr W32)
 fromW8Chunks' = W8.toWordNBE' 32
 
 fromWord32' :: Word32 -> Val W32
-fromWord32' w = toArray $ Prelude.map (Boolean . testBit w) [0 .. 31]
+fromWord32' w = Array.map' (Boolean . testBit w) [0 .. 31]
+
+fromString' :: String -> Val ('Arr W32)
+fromString' = Array.map' fromWord32' . map fromOctets . Array.group 4 . map (toEnum . fromEnum)
 
 fromWord32List' :: [Word32] -> Val ('Arr W32)
-fromWord32List' = toArray . map fromWord32'
+fromWord32List' = Array.map' fromWord32'
+
+------------------------------------------------------
+
+fromOctets :: [Word8] -> Word32
+fromOctets = foldl' accum 0
+  where
+    accum a o = (a `shiftL` 8) .|. fromIntegral o
