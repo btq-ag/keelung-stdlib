@@ -6,6 +6,8 @@ import Keelung
 import Prelude hiding (drop, map, replicate, take)
 import qualified Prelude
 
+infixr 1 >.>
+
 -- | See if 2 bit arrays are equal.
 beq :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val 'Bool
 beq as bs =
@@ -14,6 +16,9 @@ beq as bs =
     )
     true
     [0 .. lengthOf as - 1]
+
+eq :: Val ('Arr ('Arr 'Bool)) -> Val ('Arr ('Arr 'Bool)) -> Val 'Bool
+eq x y = beq (Lib.Array.concat x) (Lib.Array.concat y)
 
 --------------------------------------------------------------------------------
 
@@ -105,6 +110,14 @@ chunks n = toArray . Prelude.map toArray . group n . fromArray
 chunkReverse :: Int -> Val ('Arr t) -> Val ('Arr t)
 chunkReverse n = toArray . concatMap Prelude.reverse . group n . fromArray
 
+update :: Int -> Val a -> Val ('Arr a) -> Val ('Arr a)
+update idx x arr
+    | idx >= lengthOf arr || idx < 0 = arr
+    | otherwise = concatenate (take idx arr) (cons x (drop (idx + 1) arr))
+
+update' :: Int -> (Val a -> Val a) -> Val ('Arr a) -> Val ('Arr a)
+update' idx f arr = update idx (f (access arr idx)) arr
+
 --------------------------------------------------------------------------------
 
 group :: Int -> [a] -> [[a]]
@@ -123,3 +136,8 @@ fullAdder as bs =
       let value = a `Xor` b `Xor` carry
           nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
        in (acc ++ [value], nextCarry)
+
+{-# INLINE (>.>) #-} --infixr 9
+(>.>) :: (a -> b) -> (b -> c) -> a -> c
+(>.>) f g = g . f
+
