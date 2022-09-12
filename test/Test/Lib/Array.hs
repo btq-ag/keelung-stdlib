@@ -2,9 +2,9 @@
 
 module Test.Lib.Array where
 
-import Data.Functor
 import Keelung
 import qualified Lib.Array as Array
+import Test.Util
 import Test.QuickCheck.Monadic
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -18,24 +18,28 @@ tests =
     "Immutable Array"
     [ testProperty "List shift length" propShiftLength,
       testProperty "Array shift left" propShiftL,
-      testCase "Array shift left 1" $ assertEqWrap (Array.shiftL 1) [True, True, True, True] [True, True, True, False],
-      testCase "Array shift left 2" $ assertEqWrap (Array.shiftL 3) [True, True, True, True] [True, False, False, False],
-      testCase "Array shift left 3" $ assertEqWrap (Array.shiftL 0) [True, False, True, False] [True, False, True, False],
-      testCase "Array shift left 4" $ assertEqWrap (Array.shiftL (-1)) [True, True, True, True] [False, True, True, True],
-      testCase "Array shift left 5" $ assertEqWrap (Array.shiftL (-2)) [True, False, True, True] [False, False, True, False],
+      testCase "Array shift left 1" $ assertUnary (Array.shiftL 1) [True, True, True, True] [True, True, True, False],
+      testCase "Array shift left 2" $ assertUnary (Array.shiftL 3) [True, True, True, True] [True, False, False, False],
+      testCase "Array shift left 3" $ assertUnary (Array.shiftL 0) [True, False, True, False] [True, False, True, False],
+      testCase "Array shift left 4" $ assertUnary (Array.shiftL (-1)) [True, True, True, True] [False, True, True, True],
+      testCase "Array shift left 5" $ assertUnary (Array.shiftL (-2)) [True, False, True, True] [False, False, True, False],
       testProperty "Array shift right" propShiftR,
-      testCase "Array shift right 1" $ assertEqWrap (Array.shiftR 1) [True, True, True, True] [False, True, True, True],
-      testCase "Array shift right 3" $ assertEqWrap (Array.shiftR 3) [True, True, True, True] [False, False, False, True],
+      testCase "Array shift right 1" $ assertUnary (Array.shiftR 1) [True, True, True, True] [False, True, True, True],
+      testCase "Array shift right 3" $ assertUnary (Array.shiftR 3) [True, True, True, True] [False, False, False, True],
       testProperty "List rotate inverse" propListRotateInverse,
       testProperty "Array rotate inverse" propArrayRotateInverse,
       testProperty "rotate left prop" propRotateL,
-      testCase "rotate left 1" $ assertEqWrap (Array.rotateL 1) [True, False, True, False] [False, True, False, True],
-      testCase "rotate left 2" $ assertEqWrap (Array.rotateL 3) [False, True, False] [False, True, False],
-      testCase "rotate left 3" $ assertEqWrap (Array.rotateL 0) [True, False, True, False] [True, False, True, False],
-      testCase "rotate left 4" $ assertEqWrap (Array.rotateL (-1)) [True, False, False, False] [False, True, False, False],
+      testCase "rotate left 1" $ assertUnary (Array.rotateL 1) [True, False, True, False] [False, True, False, True],
+      testCase "rotate left 2" $ assertUnary (Array.rotateL 3) [False, True, False] [False, True, False],
+      testCase "rotate left 3" $ assertUnary (Array.rotateL 0) [True, False, True, False] [True, False, True, False],
+      testCase "rotate left 4" $ assertUnary (Array.rotateL (-1)) [True, False, False, False] [False, True, False, False],
       testProperty "rotate right prop" propRotateR,
-      testCase "rotate right 1" $ assertEqWrap (Array.rotateR 1) [True, False, True, False] [False, True, False, True],
-      testCase "rotate right 2" $ assertEqWrap (Array.rotateR 3) [True, False, True, False] [False, True, False, True]
+      testCase "rotate right 1" $ assertUnary (Array.rotateR 1) [True, False, True, False] [False, True, False, True],
+      testCase "rotate right 2" $ assertUnary (Array.rotateR 3) [True, False, True, False] [False, True, False, True],
+      testProperty "update length" propUpdateLength,
+      testCase "full adder 1" $ assertBinary Array.fullAdder [False, False, False, False] [False, False, False, False] [False, False, False, False],
+      testCase "full adder 2" $ assertBinary Array.fullAdder [True, False, False, False] [True, False, False, False] [False, True, False, False],
+      testCase "full adder 3" $ assertBinary Array.fullAdder [True, True, True, True] [True, True, True, True] [False, True, True, True]
     ]
 
 shift :: Int -> [Bool] -> [Bool]
@@ -64,55 +68,51 @@ propArrayRotateInverse :: Int -> [Bool] -> Property
 propArrayRotateInverse n xs = monadicIO $ do
   pre (not (null xs))
 
-  let actual = Array.rotate n (Array.rotate (-n) (f xs))
-  let expected = f xs
+  let actual = Array.rotate n (Array.rotate (-n) (Array.map' Boolean xs))
+  let expected = Array.map' Boolean xs
 
   actual' <- run $ interpret_ GF181 (return actual) ([] :: [GF181])
   expected' <- run $ interpret_ GF181 (return expected) ([] :: [GF181])
 
   Test.QuickCheck.Monadic.assert (actual' == expected')
-  where
-    f = Array.map' Boolean
 
 propShiftL :: Int -> [Bool] -> Property
 propShiftL n xs = monadicIO $ do
-  propWrap $ do
-    let actual = Array.shiftL n . Array.map' Boolean $ xs
-    let expect = Array.map' Boolean . shift n $ xs
-    Keelung.assert $ Array.beq actual expect
+  let actual = Array.shiftL n . Array.map' Boolean $ xs
+  let expect = Array.map' Boolean . shift n $ xs
+  propWrap actual expect
 
 propShiftR :: Int -> [Bool] -> Property
 propShiftR n xs = monadicIO $ do
-  propWrap $ do
-    let actual = Array.shiftR n . Array.map' Boolean $ xs
-    let expect = Array.map' Boolean . shift (-n) $ xs
-    Keelung.assert $ Array.beq actual expect
+  let actual = Array.shiftR n . Array.map' Boolean $ xs
+  let expect = Array.map' Boolean . shift (-n) $ xs
+  propWrap actual expect
 
 propRotateL :: Int -> [Bool] -> Property
 propRotateL n xs = monadicIO $ do
   pre (not (null xs))
-  propWrap $ do
-    let actual = Array.rotateL n . Array.map' Boolean $ xs
-    let expect = Array.map' Boolean . rotate n $ xs
-    Keelung.assert $ Array.beq actual expect
+  let actual = Array.rotateL n . Array.map' Boolean $ xs
+  let expect = Array.map' Boolean . rotate n $ xs
+  propWrap actual expect
 
 propRotateR :: Int -> [Bool] -> Property
 propRotateR n xs = monadicIO $ do
   pre (not (null xs))
-  propWrap $ do
-    let actual = Array.rotateR n . Array.map' Boolean $ xs
-    let expect = Array.map' Boolean . rotate (-n) $ xs
-    Keelung.assert $ Array.beq actual expect
+  let actual = Array.rotateR n . Array.map' Boolean $ xs
+  let expect = Array.map' Boolean . rotate (-n) $ xs
+  propWrap actual expect
 
-assertEqWrap :: (Val ('Arr 'Bool) -> Val ('Arr 'Bool)) -> [Bool] -> [Bool] -> Assertion
-assertEqWrap func actual expect = do
-  actual' <- interpret_ GF181 (return (func (toBitArr actual))) ([] :: [GF181])
-  expect' <- interpret_ GF181 (return (toBitArr expect)) ([] :: [GF181])
-  fmap (map N) actual' @?= fmap (map N) expect'
-  where
-    toBitArr = Array.map' Boolean
+propUpdateLength :: Int -> Bool -> [Bool] -> Property
+propUpdateLength idx x xs = monadicIO $ do
+  pre (not (null xs))
+  let actual = lengthOf $ Array.update idx (Boolean x) (Array.map' Boolean xs)
+  let expect = length xs
+  Test.QuickCheck.Monadic.assert (actual == expect)
 
-propWrap :: Comp t -> PropertyM IO ()
-propWrap comp = do
-  result <- run $ interpret_ GF181 (comp $> unit) ([] :: [GF181])
-  Test.QuickCheck.Monadic.assert (result == Right [])
+assertBinary :: (Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)) -> [Bool] -> [Bool] -> [Bool] -> Assertion
+assertBinary f x y expect = do
+    assertWrap (f (toBitArr x) (toBitArr y)) (toBitArr expect)
+
+assertUnary :: (Val ('Arr 'Bool) -> Val ('Arr 'Bool)) -> [Bool] -> [Bool] -> Assertion
+assertUnary f actual expect = assertWrap (f $ toBitArr actual) (toBitArr expect)
+
