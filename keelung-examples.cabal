@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       BLAKE2b
+      BLAKE2s
       Lib.Array
       Lib.ArrayM
       Lib.TestI
@@ -53,8 +54,12 @@ test-suite keelung-examples-test
   type: exitcode-stdio-1.0
   main-is: Test.hs
   other-modules:
+      Test.BLAKE2s
       Test.Lib.Array
+      Test.Lib.W32
+      Test.Util
       BLAKE2b
+      BLAKE2s
       Lib.Array
       Lib.ArrayM
       Lib.TestI
