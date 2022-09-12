@@ -107,8 +107,8 @@ cast n xs = concatenate xs (replicate (n - lengthOf xs) false)
 chunks :: Int -> Val ('Arr t) -> Val ('Arr ('Arr t))
 chunks n = toArray . Prelude.map toArray . group n . fromArray
 
-chunkReverse :: Int -> Val ('Arr t) -> Val ('Arr t)
-chunkReverse n = toArray . concatMap Prelude.reverse . group n . fromArray
+chunkReverse :: Int -> Val ('Arr t) -> Val ('Arr ('Arr t))
+chunkReverse n = map' (toArray . Prelude.reverse) . group n . fromArray
 
 update :: Int -> Val a -> Val ('Arr a) -> Val ('Arr a)
 update idx x arr
