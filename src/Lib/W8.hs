@@ -60,21 +60,21 @@ fromString' = toArray . map fromChar'
 
 -- [A, B, C, D, ...] -> [[D C B A], ...]
 toWordNBE' :: Int -> Val ('Arr W8) -> Val ('Arr ('Arr 'Bool))
-toWordNBE' n = Array.chunkReverse (n `div` 8) . Array.concat . Array.chunks n
+toWordNBE' n = Array.map Array.concat . Array.chunkReverse (n `div` 8)
 
 -- [[D C B A], ...] -> [A, B, C, D, ...]
 fromWordNBE' :: Val ('Arr ('Arr 'Bool)) -> Val ('Arr W8)
 fromWordNBE' xs =
     let n = lengthOf xs in
     let xs' = Array.chunks 8 (Array.concat xs) in
-    Array.chunkReverse (n `div` 8) xs'
+    Array.concat $ Array.chunkReverse (n `div` 8) xs'
 
 toW8Chunks' :: Val ('Arr ('Arr 'Bool)) -> Val ('Arr W8)
 toW8Chunks' = Array.chunks 8 . Array.concat
 
 ---
-pad' :: Val ('Arr W8) -> Int -> Val ('Arr W8)
-pad' xs len =
+pad' :: Int -> Val ('Arr W8) -> Val ('Arr W8)
+pad' len xs =
     let len' = lengthOf xs in
     let p = zeros' (len - len' `mod` len) in
     Array.concatenate xs p
