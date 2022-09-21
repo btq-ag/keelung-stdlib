@@ -37,7 +37,7 @@ fromW8Chunks = ArrayM.flatten >=> ArrayM.chunks 32
 --------------------------------------------------------------
 
 fromW8Chunks' :: Val ('Arr W8) -> Val ('Arr W32)
-fromW8Chunks' = W8.toWordNBE' 32
+fromW8Chunks' = Array.concat . Array.chunks 32
 
 fromWord32' :: Word32 -> Val W32
 fromWord32' w = Array.map' (Boolean . testBit w) [0 .. 31]

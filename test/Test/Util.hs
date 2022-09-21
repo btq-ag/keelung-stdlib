@@ -43,7 +43,7 @@ tests =
           [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
           [0x00000011],
       testProperty "BitConversion Property" propBitConversion,
-      testCase "W8toW32" $ testStringToW8ToW32 "a" [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x61]
+      testCase "W8toW32" $ testStringToW8ToW32 "a" [0x61, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     ]
 
 propBitConversion :: [Word32] -> Property
