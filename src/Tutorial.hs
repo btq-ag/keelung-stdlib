@@ -86,3 +86,16 @@ blake2b :: Int -> Int -> Comp (Val ('ArrM ('ArrM 'Bool)))
 blake2b msglen hashlen = do
   msg <- inputs2 msglen 8 >>= thaw2
   BLAKE2b.hash msg msglen hashlen
+
+
+birthday :: Comp (Val 'Bool)
+birthday = do 
+  -- these inputs are private witnesses
+  _hiddenYear <- inputNum
+  hiddenMonth <- input
+  hiddenDate <- input
+  -- these inputs are public inputs
+  month <- input 
+  date <- input
+
+  return $ (hiddenMonth `Eq` month) `And` (hiddenDate `Eq` date)
