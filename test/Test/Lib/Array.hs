@@ -4,7 +4,9 @@ module Test.Lib.Array where
 
 import Data.Functor
 import Keelung
+import Keelung.Error
 import qualified Lib.Array as Array
+import qualified Lib.ArrayM as ArrayM
 import Test.QuickCheck.Monadic
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -35,7 +37,9 @@ tests =
       testCase "rotate left 4" $ assertEqWrap (Array.rotateL (-1)) [True, False, False, False] [False, True, False, False],
       testProperty "rotate right prop" propRotateR,
       testCase "rotate right 1" $ assertEqWrap (Array.rotateR 1) [True, False, True, False] [False, True, False, True],
-      testCase "rotate right 2" $ assertEqWrap (Array.rotateR 3) [True, False, True, False] [False, True, False, True]
+      testCase "rotate right 2" $ assertEqWrap (Array.rotateR 3) [True, False, True, False] [False, True, False, True],
+      testProperty "Full adder (immutable)" propFullAdder,
+      testProperty "Full adder (mutable)" propFullAdderM
     ]
 
 shift :: Int -> [Bool] -> [Bool]
@@ -116,3 +120,66 @@ propWrap :: Comp t -> PropertyM IO ()
 propWrap comp = do
   result <- run $ interpret_ GF181 (comp $> unit) ([] :: [GF181])
   Test.QuickCheck.Monadic.assert (result == Right [])
+
+-------------------------------------------------------------------------------
+
+wrap :: [GF181] -> Comp (Val t) -> PropertyM IO [Bool]
+wrap ins prog = asBool $ run $ interpret_ GF181 prog ins
+
+asBool :: PropertyM IO (Either Error [GF181]) -> PropertyM IO [Bool]
+asBool f = do
+  result <- f
+  case result of
+    Left err -> fail (show err)
+    Right xs -> return (map (not . (==) 0) xs)
+
+-------------------------------------------------------------------------------
+
+propFullAdder :: Int -> Property
+propFullAdder len = forAll (gen2BoolList len) $ \(as, bs) -> monadicIO $ do
+  pre (len <= 100)
+  cs <- wrap [] $ do
+    Array.fullAdder (toBoolArr as) (toBoolArr bs)
+
+  let actual = toInt cs
+  let expected = toInt as + toInt bs
+  let bound = 2 ^ length as
+
+  return $
+    if expected >= bound
+      then actual === expected - bound
+      else actual === expected
+
+propFullAdderM :: Int -> Property
+propFullAdderM len =
+  forAll (gen2BoolList len) $ \(as, bs) -> monadicIO $ do
+    pre (len <= 100 && len > 0)
+    cs <- wrap [] $ do
+      as' <- toBoolArrM as
+      bs' <- toBoolArrM bs
+      ArrayM.fullAdder as' bs'
+
+    let actual = toInt cs
+    let expected = toInt as + toInt bs
+    let bound = 2 ^ length as
+
+    return $
+      if expected >= bound
+        then actual === expected - bound
+        else actual === expected
+
+gen2BoolList :: Int -> Gen ([Bool], [Bool])
+gen2BoolList len = do
+  as <- vector len
+  bs <- vector len
+  return (as, bs)
+
+-- | Assuming that the endianess is little endian
+toInt :: [Bool] -> Integer
+toInt = foldl (\acc (i, a) -> if a then acc + 2 ^ i else acc) 0 . zip [0 :: Integer ..]
+
+toBoolArr :: [Bool] -> Val ('Arr 'Bool)
+toBoolArr = toArray . map Boolean
+
+toBoolArrM :: [Bool] -> Comp (Val ('ArrM 'Bool))
+toBoolArrM = toArrayM . map Boolean

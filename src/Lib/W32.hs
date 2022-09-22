@@ -32,11 +32,11 @@ fromW8 = ArrayM.cast 32
 fromW8Chunks :: Val ('ArrM W8M) -> Comp (Val ('ArrM W32M))
 fromW8Chunks = ArrayM.flatten >=> ArrayM.chunks 32
 
-fromW8Chunks' :: Val ('Arr W8) -> Val ('Arr W32)
-fromW8Chunks' = W8.toWordNBE' 32
+-- fromW8Chunks' :: Val ('Arr W8) -> Val ('Arr W32)
+-- fromW8Chunks' = W8.toWordNBE' 32
 
-fromWord32' :: Word32 -> Val W32
-fromWord32' w = toArray $ Prelude.map (Boolean . testBit w) [0 .. 31]
+-- fromWord32' :: Word32 -> Val W32
+-- fromWord32' w = toArray $ Prelude.map (Boolean . testBit w) [0 .. 31]
 
-fromWord32List' :: [Word32] -> Val ('Arr W32)
-fromWord32List' = toArray . map fromWord32'
+-- fromWord32List' :: [Word32] -> Val ('Arr W32)
+-- fromWord32List' = toArray . map fromWord32'

@@ -25,13 +25,13 @@ module Lib.ArrayM
     flatten,
     cast,
     chunks,
-    fullAdder
+    fullAdder,
   )
 where
 
 import Control.Monad
-import Numeric.Natural
 import Keelung
+import Numeric.Natural
 
 -- | See if 2 bit arrays of length `width` are equal.
 beq :: Int -> Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val 'Bool)
@@ -84,7 +84,6 @@ drop n xs = do
   xs' <- fromArrayM xs
   toArrayM (Prelude.drop n xs')
 
-
 zeroBits :: Int -> Comp (Val ('ArrM 'Bool))
 zeroBits n = Lib.ArrayM.replicate n false
 
@@ -94,7 +93,7 @@ rotate n xs = do
   xs' <- fromArrayM xs
   let l = length xs'
   result <- Lib.ArrayM.replicate l false
-  forM_ (zip [0 .. l - 1] xs')$ \(i, x) -> do
+  forM_ (zip [0 .. l - 1] xs') $ \(i, x) -> do
     let i' = (i + n) `mod` l
     updateM result i' x
   return result
@@ -162,11 +161,11 @@ chunks n xs = fromArrayM xs >>= f
               | size == n -> singleton =<< toArrayM xs
               | otherwise -> singleton =<< cast' n xs
 
-
 --------------------------------------------------------------------------------
 
-fullAdder :: Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
-fullAdder as bs = do
+-- | Full adder without sharing
+fullAdderSlow :: Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
+fullAdderSlow as bs = do
   let width = lengthOfM as
   -- allocate a new array of 64 bits for the result of the addition
   result <- zeroBits width
@@ -184,8 +183,8 @@ fullAdder as bs = do
     [0 .. width - 1]
   return result
 
-fullAdderFast :: Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
-fullAdderFast as bs = do
+fullAdder :: Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
+fullAdder as bs = do
   let width = lengthOfM as
   -- allocate an array for storing the result
   result <- zeroBits width
@@ -194,7 +193,7 @@ fullAdderFast as bs = do
         -- read out the bits at position i
         a <- accessM as i
         b <- accessM bs i
-        -- store `a Xor b` and `carry` for later use 
+        -- store `a Xor b` and `carry` for later use
         xor <- reuse (a `Xor` b)
         carry' <- reuse carry
         -- compose the new value and carry
@@ -214,7 +213,7 @@ fullAdderT :: Int -> Comp (Val ('ArrM 'Bool))
 fullAdderT width = do
   xs <- inputs width >>= thaw
   ys <- inputs width >>= thaw
-  fullAdderFast xs ys
+  fullAdder xs ys
 
 -----------
 

@@ -28,7 +28,6 @@ library
       BLAKE2b
       Lib.Array
       Lib.ArrayM
-      Lib.TestI
       Lib.W32
       Lib.W64
       Lib.W8
@@ -57,7 +56,6 @@ test-suite keelung-examples-test
       BLAKE2b
       Lib.Array
       Lib.ArrayM
-      Lib.TestI
       Lib.W32
       Lib.W64
       Lib.W8

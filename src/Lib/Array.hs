@@ -2,6 +2,7 @@
 
 module Lib.Array where
 
+import Control.Monad
 import Keelung
 import Prelude hiding (drop, map, replicate, take)
 import qualified Prelude
@@ -50,12 +51,13 @@ zeroBits = flip replicate false
 
 -- | Rotate left by 'n' bits
 rotate :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
-rotate n xs = 
-    let n' = n `mod` lengthOf xs
-     in concatenate (Lib.Array.drop n' xs) (Lib.Array.take n' xs)
-  -- | otherwise =
-  --   let n' = n `mod` lengthOf xs
-  --    in concatenate (Lib.Array.drop n' xs) (Lib.Array.take n' xs)
+rotate n xs =
+  let n' = n `mod` lengthOf xs
+   in concatenate (Lib.Array.drop n' xs) (Lib.Array.take n' xs)
+
+-- otherwise =
+--  let n' = n `mod` lengthOf xs
+--   in concatenate (Lib.Array.drop n' xs) (Lib.Array.take n' xs)
 
 rotateL :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
 rotateL = rotate
@@ -110,8 +112,9 @@ group n l
   | n > 0 = Prelude.take n l : group n (Prelude.drop n l)
   | otherwise = error "Negative or zero"
 
-fullAdder :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
-fullAdder as bs =
+-- | Full adder without sharing
+fullAdderSlow :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+fullAdderSlow as bs =
   let zipped = zip (fromArray as) (fromArray bs)
    in toArray $ fst $ foldl f ([], false) zipped
   where
@@ -120,3 +123,25 @@ fullAdder as bs =
       let value = a `Xor` b `Xor` carry
           nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
        in (acc ++ [value], nextCarry)
+
+-- | Full adder
+fullAdder :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Comp (Val ('Arr 'Bool))
+fullAdder as bs = do
+  let zipped = zip (fromArray as) (fromArray bs)
+  (result, _) <- foldM f ([], false) zipped
+  return (toArray result)
+  where
+    f :: ([Val 'Bool], Val 'Bool) -> (Val 'Bool, Val 'Bool) -> Comp ([Val 'Bool], Val 'Bool)
+    f (acc, carry) (a, b) = do
+      xor <- reuse $ a `Xor` b
+      carry' <- reuse carry
+      let value = xor `Xor` carry'
+      let nextCarry = (xor `And` carry') `Or` (a `And` b)
+      return (acc ++ [value], nextCarry)
+
+-- | "T" for top-level
+fullAdderT :: Int -> Comp (Val ('Arr 'Bool))
+fullAdderT width = do
+  xs <- inputs width
+  ys <- inputs width
+  fullAdder xs ys
