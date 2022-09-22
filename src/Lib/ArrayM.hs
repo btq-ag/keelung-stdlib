@@ -165,14 +165,9 @@ chunks n xs = fromArrayM xs >>= f
 
 --------------------------------------------------------------------------------
 
-fullAdder1bit :: Val 'Bool -> Val 'Bool -> Val 'Bool -> (Val 'Bool, Val 'Bool)
-fullAdder1bit a b carry =
-  let value = a `Xor` b `Xor` carry
-      nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
-   in (value, nextCarry)
-
-fullAdder :: Int -> Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
-fullAdder width as bs = do
+fullAdder :: Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
+fullAdder as bs = do
+  let width = lengthOfM as
   -- allocate a new array of 64 bits for the result of the addition
   result <- zeroBits width
   -- 1-bit full adder
@@ -180,7 +175,8 @@ fullAdder width as bs = do
     ( \carry i -> do
         a <- accessM as i
         b <- accessM bs i
-        let (value, nextCarry) = fullAdder1bit a b carry
+        let value = a `Xor` b `Xor` carry
+        let nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
         updateM result i value
         return nextCarry
     )
@@ -188,17 +184,38 @@ fullAdder width as bs = do
     [0 .. width - 1]
   return result
 
--- testFullAdder :: Int -> Comp (Val 'Unit)
--- testFullAdder width = do
---   as <- inputs width
---   bs <- inputs width
---   cs <- inputs width
---   cs' <- fullAdder width as bs
---
---   beq width cs cs' >>= assert
---
---   return unit
---
+fullAdderFast :: Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))
+fullAdderFast as bs = do
+  let width = lengthOfM as
+  -- allocate an array for storing the result
+  result <- zeroBits width
+  foldM_
+    ( \carry i -> do
+        -- read out the bits at position i
+        a <- accessM as i
+        b <- accessM bs i
+        -- store `a Xor b` and `carry` for later use 
+        xor <- reuse (a `Xor` b)
+        carry' <- reuse carry
+        -- compose the new value and carry
+        let value = xor `Xor` carry'
+        let nextCarry = (xor `And` carry') `Or` (a `And` b)
+        -- write it back to the result array
+        updateM result i value
+        -- return the new carry
+        return nextCarry
+    )
+    false
+    [0 .. width - 1]
+  return result
+
+-- | "T" for top-level
+fullAdderT :: Int -> Comp (Val ('ArrM 'Bool))
+fullAdderT width = do
+  xs <- inputs width >>= thaw
+  ys <- inputs width >>= thaw
+  fullAdderFast xs ys
+
 -----------
 
 xorOld :: Int -> Val ('ArrM 'Bool) -> Val ('ArrM 'Bool) -> Comp (Val ('ArrM 'Bool))

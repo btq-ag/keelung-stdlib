@@ -29,7 +29,7 @@ rotateR :: Natural -> Val W64M -> Comp (Val W64M)
 rotateR = ArrayM.rotateR
 
 add :: Val W64M -> Val W64M -> Comp (Val W64M)
-add = ArrayM.fullAdder 64
+add = ArrayM.fullAdder
 
 xor :: Val W64M -> Val W64M -> Comp (Val W64M)
 xor = ArrayM.xorOld 64
