@@ -87,7 +87,7 @@ blake2b msglen hashlen = do
   msg <- inputs2 msglen 8 >>= thaw2
   BLAKE2b.hash msg msglen hashlen
 
-
+-- | Birthday voucher example 
 birthday :: Comp (Val 'Bool)
 birthday = do 
   -- these inputs are private witnesses
@@ -99,3 +99,17 @@ birthday = do
   date <- input
 
   return $ (hiddenMonth `Eq` month) `And` (hiddenDate `Eq` date)
+
+-- | A program that outputs the input to the 4th power (without computation reusing)
+notReused :: Comp (Val ('Arr 'Num))
+notReused = do
+  x <- input
+  let y = x * x * x * x
+  return $ toArray [y, y]
+
+-- | A program that outputs the input to the 4th power (with computation reusing)
+reused :: Comp (Val ('Arr 'Num))
+reused = do
+  x <- input
+  y <- reuse $ x * x * x * x
+  return $ toArray [y, y]
