@@ -38,6 +38,15 @@ zeros n = zero >>= ArrayM.replicate n
 toW8Chunks :: Val ('ArrM ('ArrM 'Bool)) -> Comp (Val ('ArrM W8M))
 toW8Chunks = ArrayM.flatten >=> ArrayM.chunks 8
 
+toWordNBE :: Int -> Val ('ArrM W8M) -> Comp (Val ('ArrM ('ArrM 'Bool)))
+toWordNBE n xs = ArrayM.mapM ArrayM.flatten =<< ArrayM.chunkReverse (n `div` 8) xs
+
+fromWordNBE :: Val ('ArrM ('ArrM 'Bool)) -> Comp (Val ('ArrM W8M))
+fromWordNBE xs = do
+    n <- lengthOfM . head <$> fromArrayM xs
+    xs' <- ArrayM.chunks 8 =<< ArrayM.flatten xs
+    ArrayM.flatten =<< ArrayM.chunkReverse (n `div` 8) xs'
+
 ----
 zero' :: Val W8
 zero' = Array.zeroBits 8

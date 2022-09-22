@@ -19,6 +19,9 @@ type W32 = 'Arr 'Bool
 fromWord32 :: Word32 -> Comp (Val W32M)
 fromWord32 word = toArrayM $ map (Boolean . testBit word) [0 .. 31]
 
+fromWord32List :: [Word32] -> Comp (Val ('ArrM W32M))
+fromWord32List ws = mapM fromWord32 ws >>= toArrayM
+
 equal :: Val W32M -> Val W32M -> Comp (Val 'Bool)
 equal = ArrayM.beq 32
 

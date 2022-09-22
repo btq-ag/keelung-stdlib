@@ -32,7 +32,7 @@ add :: Val W64M -> Val W64M -> Comp (Val W64M)
 add = ArrayM.fullAdder 64
 
 xor :: Val W64M -> Val W64M -> Comp (Val W64M)
-xor = ArrayM.xorOld 64
+xor = ArrayM.xor
 
 complement :: Val W64M -> Comp (Val W64M)
 complement = ArrayM.map neg
