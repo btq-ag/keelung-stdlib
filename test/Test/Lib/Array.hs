@@ -108,7 +108,7 @@ propRotateR n xs = monadicIO $ do
     let expect = toArray . map Boolean . rotate (-n) $ xs
     Keelung.assert $ Array.beq actual expect
 
-assertEqWrap :: (Val ('Arr 'Bool) -> Val ('Arr 'Bool)) -> [Bool] -> [Bool] -> Assertion
+assertEqWrap :: (Arr Boolean -> Arr Boolean) -> [Bool] -> [Bool] -> Assertion
 assertEqWrap func actual expect = do
   actual' <- interpret_ GF181 (return (func (toBitArr actual))) ([] :: [GF181])
   expect' <- interpret_ GF181 (return (toBitArr expect)) ([] :: [GF181])
@@ -123,7 +123,7 @@ propWrap comp = do
 
 -------------------------------------------------------------------------------
 
-wrap :: [GF181] -> Comp (Val t) -> PropertyM IO [Bool]
+wrap :: (Elaborable t, Simplify t) => [GF181] -> Comp t -> PropertyM IO [Bool]
 wrap ins prog = asBool $ run $ interpret_ GF181 prog ins
 
 asBool :: PropertyM IO (Either Error [GF181]) -> PropertyM IO [Bool]
@@ -178,8 +178,8 @@ gen2BoolList len = do
 toInt :: [Bool] -> Integer
 toInt = foldl (\acc (i, a) -> if a then acc + 2 ^ i else acc) 0 . zip [0 :: Integer ..]
 
-toBoolArr :: [Bool] -> Val ('Arr 'Bool)
+toBoolArr :: [Bool] -> Arr Boolean
 toBoolArr = toArray . map Boolean
 
-toBoolArrM :: [Bool] -> Comp (Val ('ArrM 'Bool))
+toBoolArrM :: [Bool] -> Comp (ArrM Boolean)
 toBoolArrM = toArrayM . map Boolean

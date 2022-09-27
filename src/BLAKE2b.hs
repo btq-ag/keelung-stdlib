@@ -7,8 +7,9 @@
 module BLAKE2b where
 
 import Control.Monad
+import qualified Crypto.Hash.BLAKE2.BLAKE2b
 import Data.Bits
-
+import qualified Data.ByteString.Char8 as ByteString.Char8
 import Data.WideWord.Word128 (Word128)
 import qualified Data.WideWord.Word128 as Word128
 import Data.Word
@@ -18,8 +19,6 @@ import Lib.W64 (W64M)
 import qualified Lib.W64 as W64
 import Lib.W8 (W8M)
 import qualified Lib.W8 as W8
-import qualified Crypto.Hash.BLAKE2.BLAKE2b
-import qualified Data.ByteString.Char8 as ByteString.Char8
 
 -- | Initialization vector
 iv :: [Word64]
@@ -52,11 +51,10 @@ sigma =
     [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3]
   ]
 
-test :: Comp (Val 'Unit)
+test :: Comp Unit
 test = do
   let message = concat $ replicate 200 "abc"
   let hashlen = 64 -- must <= 64
-
   message' <- W8.fromString message
   result <-
     hash
@@ -78,12 +76,12 @@ test = do
 
 hash ::
   -- | Message to be hashed
-  Val ('ArrM W8M) ->
+  ArrM W8M ->
   -- | Length of the message in bytes (0..2^128)
   Int ->
   -- | Desired hash length in bytes (1..64)
   Int ->
-  Comp (Val ('ArrM W8M))
+  Comp (ArrM W8M)
 hash msg msgLen hashLen = do
   --  Initialize State vector h with IV
   hash <- mapM W64.fromWord64 iv >>= toArrayM
@@ -94,7 +92,7 @@ hash msg msgLen hashLen = do
   h0 <- iv0 `W64.xor` spice
   updateM hash 0 h0
 
-  forM_ [0,128 .. msgLen - 128-1] $ \i -> do
+  forM_ [0, 128 .. msgLen - 128 - 1] $ \i -> do
     chunk <- ArrayM.drop i msg
     compress hash chunk (fromIntegral (i + 128)) False
 
@@ -107,7 +105,6 @@ hash msg msgLen hashLen = do
   -- assert =<< W64.equal ref =<< accessM hash 0
 
   ArrayM.take hashLen =<< W64.toW8Chunks hash
-
   where
     -- from key size ('kk') and desired hash length ('nn')
     -- for example, if key size = 17 bytes, desired hash length = 3
@@ -116,9 +113,9 @@ hash msg msgLen hashLen = do
     x0101kknn = 0x01010000 + (0 `shiftL` 8) + hashLen
 
 -- | Padding a message with `false` to the desired length
-pad :: Val ('ArrM W8M) -> Int -> Comp (Val ('ArrM W8M))
+pad :: ArrM W8M -> Int -> Comp (ArrM W8M)
 pad xs len =
-  let len' = lengthOfM xs
+  let len' = lengthOf xs
    in if len' >= len
         then return xs
         else do
@@ -126,8 +123,8 @@ pad xs len =
           ArrayM.concatenate xs xs'
 
 compress ::
-  Val ('ArrM W64M) -> -- 128 bytes of old hash value
-  Val ('ArrM W64M) -> -- 128 bytes of message to compress
+  ArrM W64M -> -- 128 bytes of old hash value
+  ArrM W64M -> -- 128 bytes of message to compress
   Word128 -> -- count of bytes that have been compressed before
   Bool -> -- is this the final round of compression?
   Comp ()
@@ -150,7 +147,7 @@ compress hash msg count final = do
   v12 <- W64.fromWord64 (Word128.word128Lo64 count) >>= (v12 `W64.xor`)
   updateM vs 12 v12
   v13 <- accessM vs 13
-  v13 <- W64.fromWord64 (Word128.word128Hi64 count)  >>= (v13 `W64.xor`)
+  v13 <- W64.fromWord64 (Word128.word128Hi64 count) >>= (v13 `W64.xor`)
   updateM vs 13 v13
 
   -- If this is the last block then invert all the bits in V14
@@ -194,12 +191,12 @@ compress hash msg count final = do
     updateM hash i x
 
 mix ::
-  Val ('ArrM W64M) ->
+  ArrM W64M ->
   Int ->
   Int ->
   Int ->
   Int ->
-  Val ('ArrM W64M) ->
+  ArrM W64M ->
   Int ->
   Int ->
   Comp ()

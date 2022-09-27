@@ -8,65 +8,65 @@ import Prelude hiding (drop, map, replicate, take)
 import qualified Prelude
 
 -- | See if 2 bit arrays are equal.
-beq :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val 'Bool
+beq :: Arr Boolean -> Arr Boolean -> Boolean
 beq as bs =
   foldl
     ( \acc i -> acc `And` (access as i `BEq` access bs i)
     )
     true
-    [0 .. lengthOf as - 1]
+    [0 .. length as - 1]
 
 --------------------------------------------------------------------------------
 
-map :: (Val a -> Val b) -> Val ('Arr a) -> Val ('Arr b)
+map :: (a -> b) -> Arr a -> Arr b
 map f = toArray . Prelude.map f . fromArray
 
 -- | Array concatenation
-concatenate :: Val ('Arr a) -> Val ('Arr a) -> Val ('Arr a)
+concatenate :: Arr a -> Arr a -> Arr a
 concatenate xs ys = toArray (fromArray xs <> fromArray ys)
 
-concat :: Val ('Arr ('Arr a)) -> Val ('Arr a)
+concat :: Arr (Arr a) -> Arr a
 concat = toArray . concatMap fromArray . fromArray
 
-cons :: Val a -> Val ('Arr a) -> Val ('Arr a)
+cons :: a -> Arr a -> Arr a
 cons x xs = toArray (x : fromArray xs)
 
-singleton :: Val a -> Val ('Arr a)
+singleton :: a -> Arr a
 singleton x = toArray [x]
 
-reverse :: Val ('Arr a) -> Val ('Arr a)
+reverse :: Arr a -> Arr a
 reverse = toArray . Prelude.reverse . fromArray
 
-replicate :: Int -> Val t -> Val ('Arr t)
+replicate :: Int -> a -> Arr a
 replicate = curry (toArray . uncurry Prelude.replicate)
 
-take :: Int -> Val ('Arr a) -> Val ('Arr a)
+take :: Int -> Arr a -> Arr a
 take n = toArray . Prelude.take n . fromArray
 
-drop :: Int -> Val ('Arr a) -> Val ('Arr a)
+drop :: Int -> Arr a -> Arr a
 drop n = toArray . Prelude.drop n . fromArray
 
-zeroBits :: Int -> Val ('Arr 'Bool)
+zeroBits :: Int -> Arr Boolean
 zeroBits = flip replicate false
 
 -- | Rotate left by 'n' bits
-rotate :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+rotate :: Int -> Arr Boolean -> Arr Boolean
 rotate n xs =
-  let n' = n `mod` lengthOf xs
+  let n' = n `mod` length xs
    in concatenate (Lib.Array.drop n' xs) (Lib.Array.take n' xs)
 
 -- otherwise =
 --  let n' = n `mod` lengthOf xs
 --   in concatenate (Lib.Array.drop n' xs) (Lib.Array.take n' xs)
 
-rotateL :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+rotateL :: Int -> Arr Boolean -> Arr Boolean
 rotateL = rotate
 
-rotateR :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+rotateR :: Int -> Arr Boolean -> Arr Boolean
 rotateR = rotate . negate
 
 -- | Shift left by 'n' bits (false-fill)
-shift :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+shift :: Int -> Arr Boolean -> Arr Boolean
 shift n xs
   | n >= len = toArray $ Prelude.replicate len false
   | n > 0 = toArray $ Prelude.drop n (fromArray xs) <> Prelude.replicate n false
@@ -74,34 +74,34 @@ shift n xs
   | n >= (-len) = toArray $ Prelude.replicate (-n) false <> Prelude.take (len + n) (fromArray xs)
   | otherwise = toArray $ Prelude.replicate len false
   where
-    len = lengthOf xs
+    len = length xs
 
-shiftL :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+shiftL :: Int -> Arr Boolean -> Arr Boolean
 shiftL = shift
 
-shiftR :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+shiftR :: Int -> Arr Boolean -> Arr Boolean
 shiftR = shift . negate
 
-or :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+or :: Arr Boolean -> Arr Boolean -> Arr Boolean
 or = bitOp Or
 
-and :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+and :: Arr Boolean -> Arr Boolean -> Arr Boolean
 and = bitOp And
 
-xor :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+xor :: Arr Boolean -> Arr Boolean -> Arr Boolean
 xor = bitOp Xor
 
-bitOp :: (Val 'Bool -> Val 'Bool -> Val 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+bitOp :: (Boolean -> Boolean -> Boolean) -> Arr Boolean -> Arr Boolean -> Arr Boolean
 bitOp op as bs = toArray $ zipWith op (fromArray as) (fromArray bs)
 
 -- | length xs <
-cast :: Int -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
-cast n xs = concatenate xs (replicate (n - lengthOf xs) false)
+cast :: Int -> Arr Boolean -> Arr Boolean
+cast n xs = concatenate xs (replicate (n - length xs) false)
 
-chunks :: Int -> Val ('Arr t) -> Val ('Arr ('Arr t))
+chunks :: Int -> Arr a -> Arr (Arr a)
 chunks n = toArray . Prelude.map toArray . group n . fromArray
 
-chunkReverse :: Int -> Val ('Arr t) -> Val ('Arr t)
+chunkReverse :: Int -> Arr a -> Arr a
 chunkReverse n = toArray . concatMap Prelude.reverse . group n . fromArray
 
 --------------------------------------------------------------------------------
@@ -113,25 +113,25 @@ group n l
   | otherwise = error "Negative or zero"
 
 -- | Full adder without sharing
-fullAdderSlow :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)
+fullAdderSlow :: Arr Boolean -> Arr Boolean -> Arr Boolean
 fullAdderSlow as bs =
   let zipped = zip (fromArray as) (fromArray bs)
    in toArray $ fst $ foldl f ([], false) zipped
   where
-    f :: ([Val 'Bool], Val 'Bool) -> (Val 'Bool, Val 'Bool) -> ([Val 'Bool], Val 'Bool)
+    f :: ([Boolean], Boolean) -> (Boolean, Boolean) -> ([Boolean], Boolean)
     f (acc, carry) (a, b) =
       let value = a `Xor` b `Xor` carry
           nextCarry = (a `Xor` b `And` carry) `Or` (a `And` b)
        in (acc ++ [value], nextCarry)
 
 -- | Full adder
-fullAdder :: Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Comp (Val ('Arr 'Bool))
+fullAdder :: Arr Boolean -> Arr Boolean -> Comp (Arr Boolean)
 fullAdder as bs = do
   let zipped = zip (fromArray as) (fromArray bs)
   (result, _) <- foldM f ([], false) zipped
   return (toArray result)
   where
-    f :: ([Val 'Bool], Val 'Bool) -> (Val 'Bool, Val 'Bool) -> Comp ([Val 'Bool], Val 'Bool)
+    f :: ([Boolean], Boolean) -> (Boolean, Boolean) -> Comp ([Boolean], Boolean)
     f (acc, carry) (a, b) = do
       xor <- reuse $ a `Xor` b
       carry' <- reuse carry
@@ -140,7 +140,7 @@ fullAdder as bs = do
       return (acc ++ [value], nextCarry)
 
 -- | "T" for top-level
-fullAdderT :: Int -> Comp (Val ('Arr 'Bool))
+fullAdderT :: Int -> Comp (Arr Boolean)
 fullAdderT width = do
   xs <- inputs width
   ys <- inputs width

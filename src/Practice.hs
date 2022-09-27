@@ -11,10 +11,10 @@ import Keelung
 --      2. xs : 'Arr 'Num (of length 4)
 --  Output:
 --      1. 'Num
-problem1 :: Comp (Val 'Num)
+problem1 :: Comp Number
 problem1 = undefined
 
-answer1 :: Comp (Val 'Num)
+answer1 :: Comp Number
 answer1 = do
   n <- input
   xs <- inputs 4
