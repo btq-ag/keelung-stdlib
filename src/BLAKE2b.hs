@@ -51,7 +51,7 @@ sigma =
     [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3]
   ]
 
-test :: Comp Unit
+test :: Comp ()
 test = do
   let message = concat $ replicate 200 "abc"
   let hashlen = 64 -- must <= 64
@@ -71,8 +71,6 @@ test = do
     x <- accessM result i
     y <- accessM ans i
     W8.equal x y >>= assert
-
-  return unit
 
 hash ::
   -- | Message to be hashed

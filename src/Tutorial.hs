@@ -19,20 +19,19 @@ echo = do
   return x -- return 'x'
 
 -- | A program that expects 2 inputs and returns no output
-useless :: Comp Unit
+useless :: Comp ()
 useless = do
   x <- inputNum -- request for an input and bind it to 'x'
   y <- inputBool -- request for an input and bind it to 'y'
-  return unit -- return nothing
+  return () -- return nothing
 
 -- | A program that expects the second input
 -- to be the square of the first input
-square :: Comp Unit
+square :: Comp ()
 square = do
   x <- input -- request for an input and bind it to 'x'
   y <- input -- request for an input and bind it to 'y'
   assert ((x * x) `Eq` y) -- assert that 'y' is the square of 'x'
-  return unit -- return nothing
 
 -- | A program that converts between Celsius and Fahrenheit degrees
 tempConvert :: Comp Number
@@ -53,14 +52,13 @@ fourthInput = do
   return fourth
 
 -- | A program that asserts all 10 inputs to be 42
-allBe42 :: Comp Unit
+allBe42 :: Comp ()
 allBe42 = do
   xs <- inputs 10
   -- access elements of `xs` with indices
   forM_ [0 .. 9] $ \i -> assert (access xs i `Eq` 42)
   -- access elements of `xs` directly
   forM_ (fromArray xs) $ \x -> assert (x `Eq` 42)
-  return unit
 
 -- | A program that sums all the 10 inputs
 summation :: Comp Number

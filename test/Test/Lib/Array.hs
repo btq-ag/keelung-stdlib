@@ -3,7 +3,7 @@
 module Test.Lib.Array where
 
 import Data.Functor
-import Keelung
+import Keelung hiding (run)
 import Keelung.Error
 import qualified Lib.Array as Array
 import qualified Lib.ArrayM as ArrayM
@@ -118,12 +118,12 @@ assertEqWrap func actual expect = do
 
 propWrap :: Comp t -> PropertyM IO ()
 propWrap comp = do
-  result <- run $ interpret_ GF181 (comp $> unit) ([] :: [GF181])
+  result <- run $ interpret_ GF181 (comp $> ()) ([] :: [GF181])
   Test.QuickCheck.Monadic.assert (result == Right [])
 
 -------------------------------------------------------------------------------
 
-wrap :: (Elaborable t, Simplify t) => [GF181] -> Comp t -> PropertyM IO [Bool]
+wrap :: Elaborable t => [GF181] -> Comp t -> PropertyM IO [Bool]
 wrap ins prog = asBool $ run $ interpret_ GF181 prog ins
 
 asBool :: PropertyM IO (Either Error [GF181]) -> PropertyM IO [Bool]
