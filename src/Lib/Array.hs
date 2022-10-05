@@ -4,9 +4,11 @@ module Lib.Array where
 
 import Control.Monad
 import Keelung
-import Prelude hiding (drop, map, replicate, take)
+import Prelude hiding (zipWith, drop, map, replicate, take)
 import qualified Prelude
 
+
+--------------------------------------------------------------------------------
 -- | See if 2 bit arrays are equal.
 beq :: Arr Boolean -> Arr Boolean -> Boolean
 beq as bs =
@@ -65,16 +67,20 @@ rotateL = rotate
 rotateR :: Int -> Arr Boolean -> Arr Boolean
 rotateR = rotate . negate
 
--- | Shift left by 'n' bits (false-fill)
-shift :: Int -> Arr Boolean -> Arr Boolean
-shift n xs
-  | n >= len = toArray $ Prelude.replicate len false
-  | n > 0 = toArray $ Prelude.drop n (fromArray xs) <> Prelude.replicate n false
+-- | Shift left by 'n' bits and fill with given value
+shiftAndFill :: Boolean -> Int -> Arr Boolean -> Arr Boolean
+shiftAndFill fill n xs
+  | n >= len = toArray $ Prelude.replicate len fill
+  | n > 0 = toArray $ Prelude.drop n (fromArray xs) <> Prelude.replicate n fill
   | n == 0 = xs
-  | n >= (-len) = toArray $ Prelude.replicate (-n) false <> Prelude.take (len + n) (fromArray xs)
-  | otherwise = toArray $ Prelude.replicate len false
+  | n >= (-len) = toArray $ Prelude.replicate (-n) fill <> Prelude.take (len + n) (fromArray xs)
+  | otherwise = toArray $ Prelude.replicate len fill
   where
     len = length xs
+
+-- | Shift left by 'n' bits (false-fill)
+shift :: Int -> Arr Boolean -> Arr Boolean
+shift = shiftAndFill false
 
 shiftL :: Int -> Arr Boolean -> Arr Boolean
 shiftL = shift
@@ -83,16 +89,16 @@ shiftR :: Int -> Arr Boolean -> Arr Boolean
 shiftR = shift . negate
 
 or :: Arr Boolean -> Arr Boolean -> Arr Boolean
-or = bitOp Or
+or = zipWith Or
 
 and :: Arr Boolean -> Arr Boolean -> Arr Boolean
-and = bitOp And
+and = zipWith And
 
 xor :: Arr Boolean -> Arr Boolean -> Arr Boolean
-xor = bitOp Xor
+xor = zipWith Xor
 
-bitOp :: (Boolean -> Boolean -> Boolean) -> Arr Boolean -> Arr Boolean -> Arr Boolean
-bitOp op as bs = toArray $ zipWith op (fromArray as) (fromArray bs)
+zipWith :: (Boolean -> Boolean -> Boolean) -> Arr Boolean -> Arr Boolean -> Arr Boolean
+zipWith op as bs = toArray $ Prelude.zipWith op (fromArray as) (fromArray bs)
 
 -- | length xs <
 cast :: Int -> Arr Boolean -> Arr Boolean
