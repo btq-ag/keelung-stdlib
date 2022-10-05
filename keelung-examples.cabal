@@ -29,6 +29,7 @@ library
       Lib.Array
       Lib.ArrayM
       Lib.Bits
+      Lib.U32
       Lib.W32
       Lib.W64
       Lib.W8
@@ -58,6 +59,7 @@ test-suite keelung-examples-test
       Lib.Array
       Lib.ArrayM
       Lib.Bits
+      Lib.U32
       Lib.W32
       Lib.W64
       Lib.W8
