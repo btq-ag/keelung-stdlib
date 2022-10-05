@@ -1,28 +1,29 @@
-module Poseidon where
+module Poseidon (hash) where
 
-import Control.Monad
 import Data.Foldable (toList)
 import Data.Traversable (for, mapAccumL)
 import Data.Vector (Vector, (!))
-import Data.Word
 import Keelung
 import qualified Poseidon.Constant as Constant
 
--- | Map with index
+-- | Map with index, basically 'mapi' in OCaml.
 mapI :: Traversable f => (Int -> a -> b) -> f a -> f b
 mapI f = snd . mapAccumL (\i x -> (i + 1, f i x)) 0
 
-arc :: Vector Number -> Word32 -> Arr Number -> Arr Number
-arc c it = mapI $ \i x -> x + c ! (fromIntegral it + i)
+-- | "AddRoundConstants"
+arc :: Vector Number -> Int -> Arr Number -> Arr Number
+arc c it = mapI $ \i x -> x + c ! (it + i)
 
-sbox :: Word32 -> Word32 -> Word32 -> Arr Number -> Arr Number
+-- | "SubWords"
+sbox :: Int -> Int -> Int -> Arr Number -> Arr Number
 sbox f p r = mapI go
   where
-    go 0 = exp5
-    go _ = if r < f `div` 2 || r >= f `div` 2 + p then exp5 else id
+    go 0 = fullSBox
+    go _ = if r < f `div` 2 || r >= f `div` 2 + p then fullSBox else id
+    -- Full S-box of x⁵
+    fullSBox x = x * x * x * x * x
 
-    exp5 x = x * x * x * x * x
-
+-- | "MixLayer"
 mix :: Vector (Vector Number) -> Arr Number -> Arr Number
 mix m state =
   toArray $

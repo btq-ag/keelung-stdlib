@@ -1,7 +1,3 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Replace case with fromMaybe" #-}
-
 module Poseidon.Constant (c, m) where
 
 import Data.Vector (Vector)
