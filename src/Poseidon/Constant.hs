@@ -7,8 +7,9 @@ module Poseidon.Constant (c, m) where
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 import Data.WideWord (Word256)
+import Keelung
 
-c :: Vector (Vector Word256)
+c :: Vector (Vector Number)
 c =
   Vector.fromList
     [ Vector.fromList
@@ -1854,7 +1855,7 @@ c =
         ]
     ]
 
-m :: Vector (Vector (Vector Word256))
+m :: Vector (Vector (Vector Number))
 m =
   Vector.fromList
     [ Vector.fromList
