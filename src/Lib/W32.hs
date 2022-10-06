@@ -10,6 +10,7 @@ import Keelung
 import qualified Lib.ArrayM as ArrayM
 import Lib.W8 (W8, W8M)
 import qualified Lib.W8 as W8
+import GHC.Natural
 
 type W32M = ArrM Boolean
 
@@ -33,11 +34,18 @@ fromW8 = ArrayM.cast 32
 fromW8Chunks :: ArrM W8M -> Comp (ArrM W32M)
 fromW8Chunks = ArrayM.flatten >=> ArrayM.chunks 32
 
--- fromW8Chunks' :: ('Arr W8) -> ('Arr W32)
--- fromW8Chunks' = W8.toWordNBE' 32
+toW8Chunks :: ArrM W32M -> Comp (ArrM W8M)
+toW8Chunks = ArrayM.flatten >=> ArrayM.chunks 8
 
--- fromWord32' :: Word32 -> W32
--- fromWord32' w = toArray $ Prelude.map (Boolean . testBit w) [0 .. 31]
+-- | Rotates right by i bits if i is positive, or right by -i bits otherwise.
+rotateR :: Natural -> W32M -> Comp W32M
+rotateR = ArrayM.rotateR
 
--- fromWord32List' :: [Word32] -> ('Arr W32)
--- fromWord32List' = toArray . map fromWord32'
+add :: W32M -> W32M -> Comp W32M
+add = ArrayM.fullAdder
+
+xor :: W32M -> W32M -> Comp W32M
+xor = ArrayM.xorOld 32
+
+complement :: W32M -> Comp W32M
+complement = ArrayM.map neg
