@@ -8,10 +8,6 @@ import qualified Hash.Poseidon.Constant as Constant
 import Keelung
 import Prelude hiding (round)
 
--- | Map with index, basically 'mapi' in OCaml.
-mapI :: Traversable f => (Int -> a -> b) -> f a -> f b
-mapI f = snd . mapAccumL (\i x -> (i + 1, f i x)) 0
-
 -- | "AddRoundConstants"
 arc :: Vector Number -> Int -> Arr Number -> Arr Number
 arc c it = mapI $ \i x -> x + c ! (it + i)
@@ -52,7 +48,7 @@ hashSlow msg =
           -- initialize state with the first element as 0 and the rest as the message
           state = toArray $ 0 : toList msg
           -- the round function consists of 3 components
-          round r = mix m . sbox f p r . arc c r
+          round r = mix m . sbox f p r . arc c (r * t)
 
           result = foldl (flip round) state [0 .. f + p - 1]
        in access result 0
