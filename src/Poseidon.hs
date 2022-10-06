@@ -1,6 +1,7 @@
 module Poseidon (hash) where
 
-import Data.Foldable (toList)
+import Control.Monad (when)
+import Data.Foldable (foldlM, toList)
 import Data.Traversable (for, mapAccumL)
 import Data.Vector (Vector, (!))
 import Keelung
@@ -31,8 +32,9 @@ mix m state =
       (\i -> sum (mapI (\j x -> x * (m ! i ! j)) state))
       [0 .. length state - 1]
 
-hash :: Arr Number -> Number
-hash msg =
+-- | Same as 'hash' but without 'reuse`
+hashSlow :: Arr Number -> Number
+hashSlow msg =
   if null msg || length msg > 6 -- check message length
     then error "Invalid message length"
     else
@@ -40,7 +42,7 @@ hash msg =
           roundsP = [56, 57, 56, 60, 60, 63, 64, 63]
 
           f = 8
-          p = roundsP !! t - 2
+          p = roundsP !! (t - 2)
           -- Constants are padded with zeroes to the maximum value calculated by
           -- t * (f + p) = 497, where `t` (number of inputs + 1) is a max of 7.
           c = Constant.c ! (t - 2)
@@ -53,3 +55,29 @@ hash msg =
 
           result = foldl (flip round) state [0 .. f + p - 1]
        in access result 0
+
+-- | 'hashSlow' with 'reuse'
+hash :: Arr Number -> Comp Number
+hash msg = do
+  -- check message length
+  when
+    (null msg || length msg > 6)
+    (error "Invalid message length")
+
+  let t = length msg + 1
+  let roundsP = [56, 57, 56, 60, 60, 63, 64, 63]
+
+  let f = 8
+  let p = roundsP !! (t - 2)
+  -- Constants are padded with zeroes to the maximum value calculated by
+  -- t * (f + p) = 497, where `t` (number of inputs + 1) is a max of 7.
+  let c = Constant.c ! (t - 2)
+  let m = Constant.m ! (t - 2)
+
+  -- initialize state with the first element as 0 and the rest as the message
+  let state = toArray $ 0 : toList msg
+  -- the round function consists of 3 components
+  let round r = mix m . sbox f p r . arc c (r * t)
+
+  result <- foldlM (\state r -> reuse (round r state)) state [0 .. f + p - 1]
+  return $ access result 0
