@@ -86,6 +86,9 @@ blake2b msglen hashlen = do
 
 -- > interpret GF181 (blake2s 2 3) [1,0,0,0,0,1,1,0, 0,1,0,0,0,1,1,0]
 --   Right [0,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,1,1]
+-- > compileO2 GF181 (blake2s 8 32)
+--   R1C constraints (70126)
+-- NOTE: Zcash uses 21006 constraints. See https://zips.z.cash/protocol/protocol.pdf (Appendix A.3.7)
 blake2s :: Int -> Int -> Comp (ArrM (ArrM Boolean))
 blake2s msglen hashlen = do
   msg <- inputs2 msglen 8 >>= thaw2

@@ -71,9 +71,9 @@ test = do
 hash ::
   -- | Message to be hashed
   ArrM W8M ->
-  -- | Length of the message in bytes (0..2^128)
+  -- | Length of the message in bytes (0..2^64)
   Int ->
-  -- | Desired hash length in bytes (1..64)
+  -- | Desired hash length in bytes (1..32)
   Int ->
   Comp (ArrM W8M)
 hash msg msgLen hashLen = do
