@@ -1,11 +1,12 @@
-module Hash.Poseidon (hash) where
+module Hash.Poseidon (hash, hashSlow) where
 
 import Control.Monad (when)
 import Data.Foldable (foldlM, toList)
-import Data.Traversable (for, mapAccumL)
+import Data.Traversable (mapAccumL)
 import Data.Vector (Vector, (!))
 import qualified Hash.Poseidon.Constant as Constant
 import Keelung
+import Prelude hiding (round)
 
 -- | Map with index, basically 'mapi' in OCaml.
 mapI :: Traversable f => (Int -> a -> b) -> f a -> f b
@@ -75,9 +76,9 @@ hash msg = do
   let m = Constant.m ! (t - 2)
 
   -- initialize state with the first element as 0 and the rest as the message
-  let state = toArray $ 0 : toList msg
+  let initState = toArray $ 0 : toList msg
   -- the round function consists of 3 components
   let round r = mix m . sbox f p r . arc c (r * t)
 
-  result <- foldlM (\state r -> reuse (round r state)) state [0 .. f + p - 1]
+  result <- foldlM (\state r -> reuse (round r state)) initState [0 .. f + p - 1]
   return $ access result 0

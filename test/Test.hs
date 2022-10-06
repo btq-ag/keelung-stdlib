@@ -1,3 +1,4 @@
+import qualified Test.Hash.Poseidon as Poseidon
 import qualified Test.Lib.Array as Array
 import Test.Tasty
 
@@ -8,4 +9,6 @@ tests :: TestTree
 tests =
   testGroup
     "Tests"
-    [Array.tests]
+    [ Array.tests,
+      Poseidon.tests
+    ]

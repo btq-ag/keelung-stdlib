@@ -139,10 +139,10 @@ fullAdder as bs = do
   where
     f :: ([Boolean], Boolean) -> (Boolean, Boolean) -> Comp ([Boolean], Boolean)
     f (acc, carry) (a, b) = do
-      xor <- reuse $ a `Xor` b
+      aXORb <- reuse $ a `Xor` b
       carry' <- reuse carry
-      let value = xor `Xor` carry'
-      let nextCarry = (xor `And` carry') `Or` (a `And` b)
+      let value = aXORb `Xor` carry'
+      let nextCarry = (aXORb `And` carry') `Or` (a `And` b)
       return (acc ++ [value], nextCarry)
 
 -- | "T" for top-level

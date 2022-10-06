@@ -58,6 +58,7 @@ test-suite keelung-examples-test
   type: exitcode-stdio-1.0
   main-is: Test.hs
   other-modules:
+      Test.Hash.Poseidon
       Test.Lib.Array
       BLAKE2b
       BLAKE2s

@@ -2,7 +2,6 @@ module Hash.Poseidon.Constant (c, m) where
 
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
-import Data.WideWord (Word256)
 import Keelung
 
 c :: Vector (Vector Number)
