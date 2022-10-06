@@ -1,4 +1,4 @@
-module Poseidon.Constant (c, m) where
+module Hash.Poseidon.Constant (c, m) where
 
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector

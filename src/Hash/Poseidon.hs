@@ -1,11 +1,11 @@
-module Poseidon (hash) where
+module Hash.Poseidon (hash) where
 
 import Control.Monad (when)
 import Data.Foldable (foldlM, toList)
 import Data.Traversable (for, mapAccumL)
 import Data.Vector (Vector, (!))
+import qualified Hash.Poseidon.Constant as Constant
 import Keelung
-import qualified Poseidon.Constant as Constant
 
 -- | Map with index, basically 'mapi' in OCaml.
 mapI :: Traversable f => (Int -> a -> b) -> f a -> f b

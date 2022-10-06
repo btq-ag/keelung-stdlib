@@ -27,6 +27,8 @@ library
   exposed-modules:
       BLAKE2b
       BLAKE2s
+      Hash.Poseidon
+      Hash.Poseidon.Constant
       Lib.Array
       Lib.ArrayM
       Lib.Bits
@@ -34,8 +36,6 @@ library
       Lib.W32
       Lib.W64
       Lib.W8
-      Poseidon
-      Poseidon.Constant
       Practice
       Tutorial
       Tutorial.FullAdder
@@ -61,6 +61,8 @@ test-suite keelung-examples-test
       Test.Lib.Array
       BLAKE2b
       BLAKE2s
+      Hash.Poseidon
+      Hash.Poseidon.Constant
       Lib.Array
       Lib.ArrayM
       Lib.Bits
@@ -68,8 +70,6 @@ test-suite keelung-examples-test
       Lib.W32
       Lib.W64
       Lib.W8
-      Poseidon
-      Poseidon.Constant
       Practice
       Tutorial
       Tutorial.FullAdder
