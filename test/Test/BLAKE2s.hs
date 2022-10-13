@@ -5,7 +5,6 @@ module Test.BLAKE2s where
 import BLAKE2s
 import Data.Word
 import Keelung
-import qualified Lib.Array as Array
 import qualified Lib.W32 as W32
 import qualified Lib.W8 as W8
 import Test.Tasty
@@ -248,7 +247,9 @@ tests =
             0xAF3D80E1,
             0x4E86829B,
             0x4DEAFD3A
-          ]
+          ],
+      testCase "hash" $
+        testHash "abc" [0x50, 0x8C, 0x5E, 0x8C, 0x32, 0x7C, 0x14, 0xE2, 0xE1, 0xA7, 0x2B, 0xA3, 0x4E, 0xEB, 0x45, 0x2F, 0x37, 0x45, 0x8B, 0x20, 0x9E, 0xD6, 0x3A, 0x29, 0x4D, 0x99, 0x9B, 0x4C, 0x86, 0x67, 0x59, 0x82]
     ]
 
 testIh :: Word32 -> Word32 -> Assertion
@@ -271,3 +272,10 @@ testCompress' r msg expect = do
   let actual = compress' r (W32.fromW8Chunks' . W8.pad' 64 . W8.fromString' $ msg) (fromIntegral $ length msg) True (ih 0 32)
   actual' <- interpret_ GF181 actual ([] :: [GF181])
   fmap toWord32List actual' @?= Right expect
+
+testHash :: String -> [Word8] -> Assertion
+testHash msg expect = do
+    let actual = hash (W8.fromString' msg) 3 0 32 
+    actual' <- interpret_ GF181 actual ([] :: [GF181])
+    expect' <- interpret_ GF181 (return . toArray $ map W8.fromWord8' expect) ([] :: [GF181])
+    fmap (map N) actual' @?= fmap (map N) expect'

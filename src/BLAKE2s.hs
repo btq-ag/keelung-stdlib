@@ -146,14 +146,14 @@ mix a b c d msg xi yi v = do
   let y = access msg yi
 
   va' <- va `Array.fullAdder` vb >>= Array.fullAdder x
-  let vd' = vd `Array.xor` va' & Array.rotateR r1
+  let vd' = vd `Array.xor` va' & Array.rotateL r1
   vc' <- vc `Array.fullAdder` vd'
-  let vb' = vb `Array.xor` vc' & Array.rotateR r2
+  let vb' = vb `Array.xor` vc' & Array.rotateL r2
 
   va'' <- va' `Array.fullAdder` vb' >>= Array.fullAdder y
-  let vd'' = vd' `Array.xor` va'' & Array.rotateR r3
+  let vd'' = vd' `Array.xor` va'' & Array.rotateL r3
   vc'' <- vc' `Array.fullAdder` vd''
-  let vb'' = vb' `Array.xor` vc'' & Array.rotateR r4
+  let vb'' = vb' `Array.xor` vc'' & Array.rotateL r4
 
   return $
     Array.update a va''
