@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
-module Sha256 where
+module SHA256 where
 
 import Control.Monad
 import Control.Monad.Trans.Class
@@ -8,7 +9,6 @@ import Control.Monad.Trans.State
 import Data.Word
 import Keelung
 import qualified Lib.ArrayM as ArrayM
-import Lib.W64 (W64M)
 import qualified Lib.W64 as W64
 import Lib.W32 (W32M)
 import qualified Lib.W32 as W32
@@ -95,9 +95,9 @@ k =
     0xc67178f2
   ]
 
-type HV = StateT (Val ('ArrM W32M)) Comp
+type HV = StateT (ArrM W32M) Comp
 
-hash :: Val ('ArrM W8M) -> Comp (Val ('ArrM W8M))
+hash :: ArrM W8M -> Comp (ArrM W8M)
 hash msg = do
     hs <- W32.fromWord32List iv
 
@@ -108,14 +108,14 @@ hash msg = do
 
     W8.fromWordNBE =<< toArrayM =<< forM [0..7] (\i -> join $ addM <$> accessM hs i <*> accessM hs' i)
 
-pad :: Val ('ArrM W8M) -> Comp (Val ('ArrM W8M))
+pad :: ArrM W8M -> Comp (ArrM W8M)
 pad xs = do
-    let l = lengthOfM xs * 8
+    let l = lengthOf xs * 8
     let k' = 512 - (l + 64 + 1 + 7) `mod` 512
     xs <- ArrayM.concatenate xs =<< join (ArrayM.cons <$> W8.fromWord8 0x80 <*> (ArrayM.chunks 8 =<< ArrayM.zeroBits k'))
     ArrayM.concatenate xs =<< W8.fromWordNBE =<< ArrayM.singleton =<< W64.fromWord64 (fromIntegral l)
 
-compression :: Val ('ArrM W32M) -> HV ()
+compression :: ArrM W32M -> HV ()
 compression chunk = do
   w <- lift $ do
     chunk' <- ArrayM.take 16 chunk
@@ -135,7 +135,7 @@ compression chunk = do
 
   mapM_ (compression' w) [0..63]
 
-compression' :: Val ('ArrM W32M) -> Int -> HV ()
+compression' :: ArrM W32M -> Int -> HV ()
 compression' w i = do
     hs <- get
     hs' <- lift $ do
@@ -165,9 +165,9 @@ compression' w i = do
     put hs'
 
 
-xorM :: Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool)) -> Comp (Val ('ArrM 'Bool))
+xorM :: Comp (ArrM Boolean) -> Comp (ArrM Boolean) -> Comp (ArrM Boolean)
 xorM x y = join $ ArrayM.xor <$> x <*> y
 
-addM :: Val W32M -> Val W32M -> Comp (Val W32M)
-addM = ArrayM.fullAdder 32
+addM :: W32M -> W32M -> Comp W32M
+addM = ArrayM.fullAdder
 

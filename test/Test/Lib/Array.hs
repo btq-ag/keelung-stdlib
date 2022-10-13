@@ -2,8 +2,10 @@
 
 module Test.Lib.Array where
 
-import Keelung
+import Keelung hiding (run)
+import Keelung.Error
 import qualified Lib.Array as Array
+import qualified Lib.ArrayM as ArrayM
 import Test.Util
 import Test.QuickCheck.Monadic
 import Test.Tasty
@@ -37,9 +39,11 @@ tests =
       testCase "rotate right 1" $ assertUnary (Array.rotateR 1) [True, False, True, False] [False, True, False, True],
       testCase "rotate right 2" $ assertUnary (Array.rotateR 3) [True, False, True, False] [False, True, False, True],
       testProperty "update length" propUpdateLength,
-      testCase "full adder 1" $ assertBinary Array.fullAdder [False, False, False, False] [False, False, False, False] [False, False, False, False],
-      testCase "full adder 2" $ assertBinary Array.fullAdder [True, False, False, False] [True, False, False, False] [False, True, False, False],
-      testCase "full adder 3" $ assertBinary Array.fullAdder [True, True, True, True] [True, True, True, True] [False, True, True, True]
+      testProperty "Full adder (immutable)" propFullAdder,
+      testProperty "Full adder (mutable)" propFullAdderM,
+      testCase "full adder 1" $ assertBinaryM Array.fullAdder [False, False, False, False] [False, False, False, False] [False, False, False, False],
+      testCase "full adder 2" $ assertBinaryM Array.fullAdder [True, False, False, False] [True, False, False, False] [False, True, False, False],
+      testCase "full adder 3" $ assertBinaryM Array.fullAdder [True, True, True, True] [True, True, True, True] [False, True, True, True]
     ]
 
 shift :: Int -> [Bool] -> [Bool]
@@ -68,8 +72,8 @@ propArrayRotateInverse :: Int -> [Bool] -> Property
 propArrayRotateInverse n xs = monadicIO $ do
   pre (not (null xs))
 
-  let actual = Array.rotate n (Array.rotate (-n) (Array.map' Boolean xs))
-  let expected = Array.map' Boolean xs
+  let actual = Array.rotate n (Array.rotate (-n) (toArray $ map Boolean xs))
+  let expected = toArray $ map Boolean xs
 
   actual' <- run $ interpret_ GF181 (return actual) ([] :: [GF181])
   expected' <- run $ interpret_ GF181 (return expected) ([] :: [GF181])
@@ -78,41 +82,110 @@ propArrayRotateInverse n xs = monadicIO $ do
 
 propShiftL :: Int -> [Bool] -> Property
 propShiftL n xs = monadicIO $ do
-  let actual = Array.shiftL n . Array.map' Boolean $ xs
-  let expect = Array.map' Boolean . shift n $ xs
+  let actual = Array.shiftL n . toArray . map Boolean $ xs
+  let expect = toArray . map Boolean . shift n $ xs
   propWrap actual expect
 
 propShiftR :: Int -> [Bool] -> Property
 propShiftR n xs = monadicIO $ do
-  let actual = Array.shiftR n . Array.map' Boolean $ xs
-  let expect = Array.map' Boolean . shift (-n) $ xs
+  let actual = Array.shiftR n . toArray . map Boolean $ xs
+  let expect = toArray . map Boolean . shift (-n) $ xs
   propWrap actual expect
 
 propRotateL :: Int -> [Bool] -> Property
 propRotateL n xs = monadicIO $ do
   pre (not (null xs))
-  let actual = Array.rotateL n . Array.map' Boolean $ xs
-  let expect = Array.map' Boolean . rotate n $ xs
+  let actual = Array.rotateL n . toArray . map Boolean $ xs
+  let expect = toArray . map Boolean . rotate n $ xs
   propWrap actual expect
 
 propRotateR :: Int -> [Bool] -> Property
 propRotateR n xs = monadicIO $ do
   pre (not (null xs))
-  let actual = Array.rotateR n . Array.map' Boolean $ xs
-  let expect = Array.map' Boolean . rotate (-n) $ xs
+  let actual = Array.rotateR n . toArray . map Boolean $ xs
+  let expect = toArray . map Boolean . rotate (-n) $ xs
   propWrap actual expect
 
 propUpdateLength :: Int -> Bool -> [Bool] -> Property
 propUpdateLength idx x xs = monadicIO $ do
   pre (not (null xs))
-  let actual = lengthOf $ Array.update idx (Boolean x) (Array.map' Boolean xs)
+  let actual = length $ Array.update idx (Boolean x) (toArray $ map Boolean xs)
   let expect = length xs
   Test.QuickCheck.Monadic.assert (actual == expect)
 
-assertBinary :: (Val ('Arr 'Bool) -> Val ('Arr 'Bool) -> Val ('Arr 'Bool)) -> [Bool] -> [Bool] -> [Bool] -> Assertion
+assertBinary :: (Arr Boolean -> Arr Boolean -> Arr Boolean) -> [Bool] -> [Bool] -> [Bool] -> Assertion
 assertBinary f x y expect = do
     assertWrap (f (toBitArr x) (toBitArr y)) (toBitArr expect)
 
-assertUnary :: (Val ('Arr 'Bool) -> Val ('Arr 'Bool)) -> [Bool] -> [Bool] -> Assertion
+assertUnary :: (Arr Boolean -> Arr Boolean) -> [Bool] -> [Bool] -> Assertion
 assertUnary f actual expect = assertWrap (f $ toBitArr actual) (toBitArr expect)
 
+assertBinaryM :: (Arr Boolean -> Arr Boolean -> Comp (Arr Boolean)) -> [Bool] -> [Bool] -> [Bool] -> Assertion
+assertBinaryM f x y expect = do
+    assertWrapM (f (toBitArr x) (toBitArr y)) (toBitArr expect)
+
+assertUnaryM :: (Arr Boolean -> Comp (Arr Boolean)) -> [Bool] -> [Bool] -> Assertion
+assertUnaryM f actual expect = assertWrapM (f $ toBitArr actual) (toBitArr expect)
+
+-------------------------------------------------------------------------------
+
+wrap :: Elaborable t => [GF181] -> Comp t -> PropertyM IO [Bool]
+wrap ins prog = asBool $ run $ interpret_ GF181 prog ins
+
+asBool :: PropertyM IO (Either Error [GF181]) -> PropertyM IO [Bool]
+asBool f = do
+  result <- f
+  case result of
+    Left err -> fail (show err)
+    Right xs -> return (map (not . (==) 0) xs)
+
+-------------------------------------------------------------------------------
+
+propFullAdder :: Int -> Property
+propFullAdder len = forAll (gen2BoolList len) $ \(as, bs) -> monadicIO $ do
+  pre (len <= 100)
+  cs <- wrap [] $ do
+    Array.fullAdder (toBoolArr as) (toBoolArr bs)
+
+  let actual = toInt cs
+  let expected = toInt as + toInt bs
+  let bound = 2 ^ length as
+
+  return $
+    if expected >= bound
+      then actual === expected - bound
+      else actual === expected
+
+propFullAdderM :: Int -> Property
+propFullAdderM len =
+  forAll (gen2BoolList len) $ \(as, bs) -> monadicIO $ do
+    pre (len <= 100 && len > 0)
+    cs <- wrap [] $ do
+      as' <- toBoolArrM as
+      bs' <- toBoolArrM bs
+      ArrayM.fullAdder as' bs'
+
+    let actual = toInt cs
+    let expected = toInt as + toInt bs
+    let bound = 2 ^ length as
+
+    return $
+      if expected >= bound
+        then actual === expected - bound
+        else actual === expected
+
+gen2BoolList :: Int -> Gen ([Bool], [Bool])
+gen2BoolList len = do
+  as <- vector len
+  bs <- vector len
+  return (as, bs)
+
+-- | Assuming that the endianess is little endian
+toInt :: [Bool] -> Integer
+toInt = foldl (\acc (i, a) -> if a then acc + 2 ^ i else acc) 0 . zip [0 :: Integer ..]
+
+toBoolArr :: [Bool] -> Arr Boolean
+toBoolArr = toArray . map Boolean
+
+toBoolArrM :: [Bool] -> Comp (ArrM Boolean)
+toBoolArrM = toArrayM . map Boolean

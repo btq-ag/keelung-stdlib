@@ -29,12 +29,11 @@ library
       BLAKE2s
       Lib.Array
       Lib.ArrayM
-      Lib.TestI
       Lib.W32
       Lib.W64
       Lib.W8
       Practice
-      Sha256
+      SHA256
       Tutorial
       Tutorial.FullAdder
       Tutorial.TempConv
@@ -59,18 +58,17 @@ test-suite keelung-examples-test
       Test.BLAKE2s
       Test.Lib.Array
       Test.Lib.W32
-      Test.Sha256
+      Test.SHA256
       Test.Util
       BLAKE2b
       BLAKE2s
       Lib.Array
       Lib.ArrayM
-      Lib.TestI
       Lib.W32
       Lib.W64
       Lib.W8
       Practice
-      Sha256
+      SHA256
       Tutorial
       Tutorial.FullAdder
       Tutorial.TempConv

@@ -6,13 +6,14 @@ module Test.Util
     toGF181Bits,
     toWord32List,
     assertWrap,
+    assertWrapM,
     propWrap,
   )
 where
 
 import Data.Bits
 import Data.Word
-import Keelung
+import Keelung hiding (run)
 import Lib.Array (group)
 import qualified Lib.Array as Array
 import qualified Lib.W32 as W32
@@ -75,16 +76,22 @@ toWord32List xs =
             )
             x
 
-toBitArr :: [Bool] -> Val ('Arr 'Bool)
-toBitArr = Array.map' Boolean
+toBitArr :: [Bool] -> Arr Boolean
+toBitArr = toArray . map Boolean
 
-assertWrap :: Val t -> Val t -> Assertion
+assertWrap :: Elaborable t => t -> t -> Assertion
 assertWrap actual expect = do
   actual' <- interpret_ GF181 (return actual) ([] :: [GF181])
   expect' <- interpret_ GF181 (return expect) ([] :: [GF181])
   fmap (map N) actual' @?= fmap (map N) expect'
 
-propWrap :: Val t -> Val t -> PropertyM IO ()
+assertWrapM :: Elaborable t => Comp t -> t -> Assertion
+assertWrapM actual expect = do
+  actual' <- interpret_ GF181 actual ([] :: [GF181])
+  expect' <- interpret_ GF181 (return expect) ([] :: [GF181])
+  fmap (map N) actual' @?= fmap (map N) expect'
+
+propWrap :: Elaborable t => t -> t -> PropertyM IO ()
 propWrap actual expect = do
   actual' <- run $ interpret_ GF181 (pure actual) ([] :: [GF181])
   expect' <- run $ interpret_ GF181 (pure expect) ([] :: [GF181])

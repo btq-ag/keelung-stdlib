@@ -269,5 +269,5 @@ testIh kk nn = do
 testCompress' :: Int -> String -> [Word32] -> Assertion
 testCompress' r msg expect = do
   let actual = compress' r (W32.fromW8Chunks' . W8.pad' 64 . W8.fromString' $ msg) (fromIntegral $ length msg) True (ih 0 32)
-  actual' <- interpret_ GF181 (return actual) ([] :: [GF181])
+  actual' <- interpret_ GF181 actual ([] :: [GF181])
   fmap toWord32List actual' @?= Right expect

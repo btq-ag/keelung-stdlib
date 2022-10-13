@@ -2,7 +2,7 @@
 
 module Test.Lib.W32 where
 
-import Keelung
+import Keelung hiding (run)
 import qualified Lib.W32 as W32
 
 import Data.Word

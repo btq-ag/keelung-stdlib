@@ -1,9 +1,9 @@
 {-# LANGUAGE DataKinds #-}
 
-module Test.Sha256 where
+module Test.SHA256 where
 
 import Keelung
-import Sha256
+import SHA256
 import qualified Lib.W8 as W8
 
 import Crypto.Hash (hashWith, SHA256(..))

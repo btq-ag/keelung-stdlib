@@ -6,6 +6,7 @@
 
 module BLAKE2s where
 
+import Control.Monad
 import Data.Bits
 import Data.Function ((&))
 import Data.Word
@@ -61,54 +62,55 @@ sigma =
 bb :: Int
 bb = 64
 
-hash :: Val ('Arr W8) -> Word64 -> Word32 -> Word32 -> Val ('Arr W8)
+hash :: Arr W8 -> Word64 -> Word32 -> Word32 -> Comp (Arr W8)
 hash xs ll kk nn =
   let xs' = (Array.chunks 16 . W32.fromW8Chunks' . W8.pad' 64) xs
    in blake2 xs' ll kk nn
 
-blake2 :: Val ('Arr ('Arr W32)) -> Word64 -> Word32 -> Word32 -> Val ('Arr W8)
+blake2 :: Arr (Arr W32) -> Word64 -> Word32 -> Word32 -> Comp (Arr W8)
 blake2 d ll kk nn = do
-  let dd = lengthOf d
+  let dd = length d
   let d' = fromArray d
 
-  let h =
-        applyWhen
-          (dd > 1)
-          ( \h' ->
-              foldl
-                (\h' (di, i) -> compress di (fromIntegral (i + 1) * fromIntegral bb) False h')
-                h'
-                (zip d' [0 .. dd - 2])
+  h <-
+    applyWhenM
+      (dd > 1)
+      ( \h' ->
+          foldM
+            (\h' (di, i) -> compress di (fromIntegral (i + 1) * fromIntegral bb) False h')
+            h'
+            (zip d' [0 .. dd - 2])
+      )
+      >=> ( if kk == 0
+              then compress (last d') ll True
+              else compress (last d') (ll + fromIntegral bb) True
           )
-          >.> ( if kk == 0
-                  then compress (last d') ll True
-                  else compress (last d') (ll + fromIntegral bb) True
-              )
-          $ ih kk nn
+      $ ih kk nn
 
-  Array.take (fromIntegral nn) (W8.toW8Chunks' h)
+  return $ Array.take (fromIntegral nn) (W8.toW8Chunks' h)
 
 -- init state
-ih :: Word32 -> Word32 -> Val ('Arr W32)
+ih :: Word32 -> Word32 -> Arr W32
 ih kk nn =
   W32.fromWord32List'
     >.> Array.update' 0 (Array.xor . W32.fromWord32' $ 0x01010000 `xor` shiftL kk 8 `xor` nn)
     $ take 8 iv
 
-compress :: Val ('Arr W32) -> Word64 -> Bool -> Val ('Arr W32) -> Val ('Arr W32)
+compress :: Arr W32 -> Word64 -> Bool -> Arr W32 -> Comp (Arr W32)
 compress m t f h = do
-  let v = compress' 10 m t f h
+  v <- compress' 10 m t f h
 
-  foldl
-    ( \h' i -> do
-        let vi = access v i
-        let vj = access v (i + 8)
-        Array.update' i (Array.xor vi . Array.xor vj) h'
-    )
-    h
-    [0 .. 7]
+  return $
+    foldl
+      ( \h' i -> do
+          let vi = access v i
+          let vj = access v (i + 8)
+          Array.update' i (Array.xor vi . Array.xor vj) h'
+      )
+      h
+      [0 .. 7]
 
-compress' :: Int -> Val ('Arr W32) -> Word64 -> Bool -> Val ('Arr W32) -> Val ('Arr W32)
+compress' :: Int -> Arr W32 -> Word64 -> Bool -> Arr W32 -> Comp (Arr W32)
 compress' r m t f h = do
   let v =
         Array.concatenate (Array.take 8 h) . W32.fromWord32List'
@@ -117,23 +119,23 @@ compress' r m t f h = do
           >.> applyWhen f (Array.update' 14 . Array.xor . W32.fromWord32' $ 0xFFFFFFFF)
           $ take 8 iv
 
-  foldl
+  foldM
     ( \v' i ->
         let si = sigma !! i
          in mix 0 4 8 12 m (si !! 0) (si !! 1)
-              >.> mix 1 5 9 13 m (si !! 2) (si !! 3)
-              >.> mix 2 6 10 14 m (si !! 4) (si !! 5)
-              >.> mix 3 7 11 15 m (si !! 6) (si !! 7)
-              >.> mix 0 5 10 15 m (si !! 8) (si !! 9)
-              >.> mix 1 6 11 12 m (si !! 10) (si !! 11)
-              >.> mix 2 7 8 13 m (si !! 12) (si !! 13)
-              >.> mix 3 4 9 14 m (si !! 14) (si !! 15)
+              >=> mix 1 5 9 13 m (si !! 2) (si !! 3)
+              >=> mix 2 6 10 14 m (si !! 4) (si !! 5)
+              >=> mix 3 7 11 15 m (si !! 6) (si !! 7)
+              >=> mix 0 5 10 15 m (si !! 8) (si !! 9)
+              >=> mix 1 6 11 12 m (si !! 10) (si !! 11)
+              >=> mix 2 7 8 13 m (si !! 12) (si !! 13)
+              >=> mix 3 4 9 14 m (si !! 14) (si !! 15)
               $ v'
     )
     v
     [0 .. r - 1]
 
-mix :: Int -> Int -> Int -> Int -> Val ('Arr W32) -> Int -> Int -> Val ('Arr W32) -> Val ('Arr W32)
+mix :: Int -> Int -> Int -> Int -> Arr W32 -> Int -> Int -> Arr W32 -> Comp (Arr W32)
 mix a b c d msg xi yi v = do
   let va = access v a
   let vb = access v b
@@ -143,26 +145,30 @@ mix a b c d msg xi yi v = do
   let x = access msg xi
   let y = access msg yi
 
-  let va' = va `Array.fullAdder` vb `Array.fullAdder` x
+  va' <- va `Array.fullAdder` vb >>= Array.fullAdder x
   let vd' = vd `Array.xor` va' & Array.rotateR r1
-  let vc' = vc `Array.fullAdder` vd'
+  vc' <- vc `Array.fullAdder` vd'
   let vb' = vb `Array.xor` vc' & Array.rotateR r2
 
-  let va'' = va' `Array.fullAdder` vb' `Array.fullAdder` y
+  va'' <- va' `Array.fullAdder` vb' >>= Array.fullAdder y
   let vd'' = vd' `Array.xor` va'' & Array.rotateR r3
-  let vc'' = vc' `Array.fullAdder` vd''
+  vc'' <- vc' `Array.fullAdder` vd''
   let vb'' = vb' `Array.xor` vc'' & Array.rotateR r4
 
-  Array.update a va''
-    >.> Array.update b vb''
-    >.> Array.update c vc''
-    >.> Array.update d vd''
-    $ v
+  return $
+    Array.update a va''
+      >.> Array.update b vb''
+      >.> Array.update c vc''
+      >.> Array.update d vd''
+      $ v
   where
     (r1, r2, r3, r4) = (16, 12, 8, 7)
 
 applyWhen :: Bool -> (a -> a) -> a -> a
 applyWhen t f x = if t then f x else x
+
+applyWhenM :: Applicative m => Bool -> (a -> m a) -> a -> m a
+applyWhenM t f x = if t then f x else pure x
 
 word64hi32 :: Word64 -> Word32
 word64hi32 x = fromIntegral $ shift x (-32)
