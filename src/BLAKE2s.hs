@@ -149,21 +149,21 @@ mix a b c d msg xi yi v = do
   let x = access msg xi
   let y = access msg yi
 
-  va' <- va `Array.fullAdder` vb >>= Array.fullAdder x
-  let vd' = vd `Array.xor` va' & Array.rotateL r1
-  vc' <- vc `Array.fullAdder` vd'
-  let vb' = vb `Array.xor` vc' & Array.rotateL r2
+  va <- va `Array.fullAdder` vb >>= Array.fullAdder x
+  vd <- return $ vd `Array.xor` va & Array.rotateL r1
+  vc <- vc `Array.fullAdder` vd
+  vb <- return $ vb `Array.xor` vc & Array.rotateL r2
 
-  va'' <- va' `Array.fullAdder` vb' >>= Array.fullAdder y
-  let vd'' = vd' `Array.xor` va'' & Array.rotateL r3
-  vc'' <- vc' `Array.fullAdder` vd''
-  let vb'' = vb' `Array.xor` vc'' & Array.rotateL r4
+  va <- va `Array.fullAdder` vb >>= Array.fullAdder y
+  vd <- return $ vd `Array.xor` va & Array.rotateL r3
+  vc <- vc `Array.fullAdder` vd
+  vb <- return $ vb `Array.xor` vc & Array.rotateL r4
 
   return $
-    Array.update a va''
-      >.> Array.update b vb''
-      >.> Array.update c vc''
-      >.> Array.update d vd''
+    Array.update a va
+      >.> Array.update b vb
+      >.> Array.update c vc
+      >.> Array.update d vd
       $ v
   where
     (r1, r2, r3, r4) = (16, 12, 8, 7)
