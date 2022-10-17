@@ -42,7 +42,7 @@ fromW8Chunks = ArrayM.flatten >=> ArrayM.chunks 32
 -- --------------------------------------------------------------
 
 fromW8Chunks' :: Arr W8 -> Arr W32
-fromW8Chunks' = Array.map Array.concat . Array.chunks 4
+fromW8Chunks' = Array.chunks 32 . Array.concat
 
 fromWord32' :: Word32 -> W32
 fromWord32' w = toArray $ Prelude.map (Boolean . testBit w) [0 .. 31]
