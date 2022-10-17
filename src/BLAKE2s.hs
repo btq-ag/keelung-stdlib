@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
+{-# LANGUAGE GADTs #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Use head" #-}
@@ -31,18 +32,21 @@ import qualified Lib.W8 as W8
 --   constants = | (32, 24, 16, 63) | (16, 12,  8,  7) |
 -- --------------+------------------+------------------+
 
+-- | Initialization vector
 iv :: [Word32]
 iv =
-  [ 0x6a09e667,
-    0xbb67ae85,
-    0x3c6ef372,
-    0xa54ff53a,
-    0x510e527f,
-    0x9b05688c,
-    0x1f83d9ab,
-    0x5be0cd19
+  [ 0x6a09e667, -- Frac(sqrt(2))
+    0xbb67ae85, -- Frac(sqrt(3))
+    0x3c6ef372, -- Frac(sqrt(5))
+    0xa54ff53a, -- Frac(sqrt(7))
+    0x510e527f, -- Frac(sqrt(11))
+    0x9b05688c, -- Frac(sqrt(13))
+    0x1f83d9ab, -- Frac(sqrt(17))
+    0x5be0cd19 -- Frac(sqrt(19))
   ]
 
+-- | SIGMA has only 10 distinct entries,
+--   the 11th and the 12th are the same as the 1st and the 2nd.
 sigma :: [[Int]]
 sigma =
   [ [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],

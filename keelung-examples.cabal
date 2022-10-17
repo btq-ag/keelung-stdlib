@@ -27,8 +27,13 @@ library
   exposed-modules:
       BLAKE2b
       BLAKE2s
+      BLAKE2sM
+      Hash.Poseidon
+      Hash.Poseidon.Constant
       Lib.Array
       Lib.ArrayM
+      Lib.Bits
+      Lib.U32
       Lib.W32
       Lib.W64
       Lib.W8
@@ -48,6 +53,7 @@ library
     , galois-field
     , keelung
     , transformers
+    , vector
     , wide-word
   default-language: Haskell2010
 
@@ -56,14 +62,20 @@ test-suite keelung-examples-test
   main-is: Test.hs
   other-modules:
       Test.BLAKE2s
+      Test.Hash.Poseidon
       Test.Lib.Array
       Test.Lib.W32
       Test.SHA256
       Test.Util
       BLAKE2b
       BLAKE2s
+      BLAKE2sM
+      Hash.Poseidon
+      Hash.Poseidon.Constant
       Lib.Array
       Lib.ArrayM
+      Lib.Bits
+      Lib.U32
       Lib.W32
       Lib.W64
       Lib.W8
@@ -91,5 +103,6 @@ test-suite keelung-examples-test
     , tasty-quickcheck
     , transformers
     , utf8-string
+    , vector
     , wide-word
   default-language: Haskell2010

@@ -7,6 +7,7 @@
 module Tutorial where
 
 import qualified BLAKE2b
+import qualified BLAKE2sM
 import Control.Monad
 import Keelung
 import qualified Lib.Array as Array
@@ -71,7 +72,7 @@ returnArray = do
   x <- input
   return $ toArray [x, x, x, x]
 
--- > interpret (blake2b 2 3) [1,0,0,0,0,1,1,0, 0,1,0,0,0,1,1,0]
+-- > interpret GF181 (blake2b 2 3) [1,0,0,0,0,1,1,0, 0,1,0,0,0,1,1,0]
 --   Right [10110010 11101100 00100010]
 --
 -- means to calculate the 3-byte digest blake2b of string "ab"
@@ -82,6 +83,20 @@ blake2b :: Int -> Int -> Comp (ArrM (ArrM Boolean))
 blake2b msglen hashlen = do
   msg <- inputs2 msglen 8 >>= thaw2
   BLAKE2b.hash msg msglen hashlen
+
+-- > interpret GF181 (blake2s 2 3) [1,0,0,0,0,1,1,0, 0,1,0,0,0,1,1,0]
+--   Right [0,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,1,1]
+-- > compileO2 GF181 (blake2s 8 32)
+--   R1C constraints (70126)
+-- NOTE: Zcash uses 21006 constraints. See https://zips.z.cash/protocol/protocol.pdf (Appendix A.3.7)
+blake2s :: Int -> Int -> Comp (ArrM (ArrM Boolean))
+blake2s msglen hashlen = do
+  msg <- inputs2 msglen 8 >>= thaw2
+  BLAKE2sM.hash msg msglen hashlen
+
+blake2sx :: Comp ()
+blake2sx = BLAKE2sM.test
+
 
 -- | Birthday voucher example
 birthday :: Comp Boolean
@@ -109,3 +124,38 @@ reused = do
   x <- input
   y <- reuse $ x * x * x * x
   return $ toArray [y, y]
+
+packing :: Comp ()
+packing = do
+  x <- input
+  x0 <- input
+  x1 <- input
+  x2 <- input
+  x3 <- input
+  x4 <- input
+  assert $ x `Eq` (x0 + x1 * 2 + x2 * 4 + x3 * 8 + x4 * 16)
+  assert $ x0 `Eq` (x0 * x0)
+  assert $ x1 `Eq` (x1 * x1)
+  assert $ x2 `Eq` (x2 * x2)
+  assert $ x3 `Eq` (x3 * x3)
+  assert $ x4 `Eq` (x4 * x4)
+  return ()
+
+packing2 :: Comp ()
+packing2 = do
+  x <- input
+  xs <- inputs 100
+
+  let x' = foldr (\x acc -> ToNum x + 2 * acc) 0 xs
+  assert $ x `Eq` x'
+  return ()
+
+packing3 :: Comp ()
+packing3 = do
+  x <- input
+  xs <- fromArray <$> inputs 5
+
+  let x' = foldr (\(i,x) acc -> x * fromInteger (2^i) + acc) 0 (zip [0..] xs)
+  assert $ x `Eq` x'
+  forM_ xs $ \x -> assert (x `Eq` (x * x))
+  return ()

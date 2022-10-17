@@ -27,6 +27,7 @@ dependencies:
 - blake2
 - bytestring
 - transformers
+- vector
 
 library:
   source-dirs: src

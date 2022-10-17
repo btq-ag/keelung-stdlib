@@ -12,6 +12,7 @@ import qualified Lib.ArrayM as ArrayM
 import qualified Lib.Array as Array
 import Lib.W8 (W8, W8M)
 import qualified Lib.W8 as W8
+import GHC.Natural
 
 type W32M = ArrM Boolean
 
@@ -59,3 +60,19 @@ fromOctets :: [Word8] -> Word32
 fromOctets = foldl' accum 0
   where
     accum a o = (a `shiftL` 8) .|. fromIntegral o
+
+toW8Chunks :: ArrM W32M -> Comp (ArrM W8M)
+toW8Chunks = ArrayM.flatten >=> ArrayM.chunks 8
+
+-- | Rotates right by i bits if i is positive, or right by -i bits otherwise.
+rotateR :: Natural -> W32M -> Comp W32M
+rotateR = ArrayM.rotateR
+
+add :: W32M -> W32M -> Comp W32M
+add = ArrayM.fullAdder
+
+xor :: W32M -> W32M -> Comp W32M
+xor = ArrayM.xor
+
+complement :: W32M -> Comp W32M
+complement = ArrayM.map neg
