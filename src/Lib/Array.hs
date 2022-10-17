@@ -1,5 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-
 module Lib.Array where
 
 import Control.Monad
@@ -7,6 +5,7 @@ import Keelung
 import Prelude hiding (zipWith, drop, map, replicate, take)
 import qualified Prelude
 
+infixr 1 >.>
 
 --------------------------------------------------------------------------------
 -- | See if 2 bit arrays are equal.
@@ -17,6 +16,9 @@ beq as bs =
     )
     true
     [0 .. length as - 1]
+
+eq :: Arr (Arr Boolean) -> Arr (Arr Boolean) -> Boolean
+eq x y = beq (Lib.Array.concat x) (Lib.Array.concat y)
 
 --------------------------------------------------------------------------------
 
@@ -107,8 +109,16 @@ cast n xs = concatenate xs (replicate (n - length xs) false)
 chunks :: Int -> Arr a -> Arr (Arr a)
 chunks n = toArray . Prelude.map toArray . group n . fromArray
 
-chunkReverse :: Int -> Arr a -> Arr a
-chunkReverse n = toArray . concatMap Prelude.reverse . group n . fromArray
+chunkReverse :: Int -> Arr a -> Arr (Arr a)
+chunkReverse n = toArray . Prelude.map (toArray. Prelude.reverse) . group n . fromArray
+
+update :: Int -> a -> Arr a -> Arr a
+update idx x arr
+    | idx >= length arr || idx < 0 = arr
+    | otherwise = concatenate (take idx arr) (cons x (drop (idx + 1) arr))
+
+update' :: Int -> (a -> a) -> Arr a -> Arr a
+update' idx f arr = update idx (f (access arr idx)) arr
 
 --------------------------------------------------------------------------------
 
@@ -151,3 +161,8 @@ fullAdderT width = do
   xs <- inputs width
   ys <- inputs width
   fullAdder xs ys
+
+{-# INLINE (>.>) #-} --infixr 9
+(>.>) :: (a -> b) -> (b -> c) -> a -> c
+(>.>) f g = g . f
+

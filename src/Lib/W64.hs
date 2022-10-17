@@ -31,7 +31,7 @@ add :: W64M -> W64M -> Comp W64M
 add = ArrayM.fullAdder
 
 xor :: W64M -> W64M -> Comp W64M
-xor = ArrayM.xorOld 64
+xor = ArrayM.xor
 
 complement :: W64M -> Comp W64M
 complement = ArrayM.map neg
