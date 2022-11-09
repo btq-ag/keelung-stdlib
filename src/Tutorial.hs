@@ -146,7 +146,7 @@ packing2 = do
   x <- input
   xs <- inputs 100
 
-  let x' = foldr (\x acc -> ToNum x + 2 * acc) 0 xs
+  let x' = foldr (\x acc -> FromBool x + 2 * acc) 0 xs
   assert $ x `Eq` x'
   return ()
 
