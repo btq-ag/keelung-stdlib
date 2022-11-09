@@ -38,46 +38,55 @@ zeros n = zero >>= ArrayM.replicate n
 toW8Chunks :: ArrM (ArrM Boolean) -> Comp (ArrM W8M)
 toW8Chunks = ArrayM.flatten >=> ArrayM.chunks 8
 
+toWordNBE :: Int -> ArrM W8M -> Comp (ArrM (ArrM Boolean))
+toWordNBE n xs = ArrayM.mapM ArrayM.flatten =<< ArrayM.chunkReverse (n `div` 8) xs
+
+fromWordNBE :: ArrM (ArrM Boolean) -> Comp (ArrM W8M)
+fromWordNBE xs = do
+    n <- lengthOf . head <$> fromArrayM xs
+    xs' <- ArrayM.chunks 8 =<< ArrayM.flatten xs
+    ArrayM.flatten =<< ArrayM.chunkReverse (n `div` 8) xs'
+
 ----
--- zero' :: Val W8
--- zero' = Array.zeroBits 8
+zero' :: W8
+zero' = Array.zeroBits 8
 
--- zeros' :: Int -> Val ('Arr W8)
--- zeros' n = Array.replicate n zero'
+zeros' :: Int -> Arr W8
+zeros' n = Array.replicate n zero'
 
--- -- | `fromWord8` implemented with immutable arrays
+-- | `fromWord8` implemented with immutable arrays
 
--- fromWord8' :: Word8 -> Val W8
--- fromWord8' word = toArray $ Prelude.map (Boolean . testBit word) [0 .. 7]
+fromWord8' :: Word8 -> W8
+fromWord8' word = toArray $ Prelude.map (Boolean . testBit word) [0 .. 7]
 
--- -- | `fromChar` implemented with immutable arrays
--- fromChar' :: Char -> Val W8
--- fromChar' = fromWord8' . toEnum . fromEnum
+-- | `fromChar` implemented with immutable arrays
+fromChar' :: Char -> W8
+fromChar' = fromWord8' . toEnum . fromEnum
 
--- -- | `fromString` implemented with immutable arrays
--- fromString' :: String -> Val ('Arr W8)
--- fromString' = toArray . map fromChar'
+-- | `fromString` implemented with immutable arrays
+fromString' :: String -> Arr W8
+fromString' = toArray . map fromChar'
 
 -- -- [A, B, C, D, ...] -> [[D C B A], ...]
 -- toWordNBE' :: Int -> Val ('Arr W8) -> Val ('Arr ('Arr 'Bool))
--- toWordNBE' n = Array.chunkReverse (n `div` 8) . Array.concat . Array.chunks n
-
+-- toWordNBE' n = Array.map Array.concat . Array.chunkReverse (n `div` 8)
+--
 -- -- [[D C B A], ...] -> [A, B, C, D, ...]
 -- fromWordNBE' :: Val ('Arr ('Arr 'Bool)) -> Val ('Arr W8)
 -- fromWordNBE' xs =
 --     let n = lengthOf xs in
 --     let xs' = Array.chunks 8 (Array.concat xs) in
---     Array.chunkReverse (n `div` 8) xs'
+--     Array.concat $ Array.chunkReverse (n `div` 8) xs'
 
--- toW8Chunks' :: Val ('Arr ('Arr 'Bool)) -> Val ('Arr W8)
--- toW8Chunks' = Array.chunks 8 . Array.concat
+toW8Chunks' :: Arr (Arr Boolean) -> Arr W8
+toW8Chunks' = Array.chunks 8 . Array.concat
 
--- ---
--- pad' :: Val ('Arr W8) -> Int -> Val ('Arr W8)
--- pad' xs len =
---     let len' = lengthOf xs in
---     let p = zeros' (len - len' `mod` len) in
---     Array.concatenate xs p
+---
+pad' :: Int -> Arr W8 -> Arr W8
+pad' len xs =
+    let len' = length xs in
+    let p = zeros' (len - len' `mod` len) in
+    Array.concatenate xs p
 
 -- equal' :: Val W8 -> Val W8 -> Boolean
 -- equal' = Array.beq

@@ -7,7 +7,7 @@
 module Tutorial where
 
 import qualified BLAKE2b
-import qualified BLAKE2s
+import qualified BLAKE2sM
 import Control.Monad
 import Keelung
 import qualified Lib.Array as Array
@@ -92,10 +92,10 @@ blake2b msglen hashlen = do
 blake2s :: Int -> Int -> Comp (ArrM (ArrM Boolean))
 blake2s msglen hashlen = do
   msg <- inputs2 msglen 8 >>= thaw2
-  BLAKE2s.hash msg msglen hashlen
+  BLAKE2sM.hash msg msglen hashlen
 
 blake2sx :: Comp ()
-blake2sx = BLAKE2s.test
+blake2sx = BLAKE2sM.test
 
 
 -- | Birthday voucher example

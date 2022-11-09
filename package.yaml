@@ -26,6 +26,7 @@ dependencies:
 - galois-field
 - blake2
 - bytestring
+- transformers
 - vector
 
 library:
@@ -42,6 +43,9 @@ tests:
       - tasty-quickcheck
       - tasty-hunit
       - QuickCheck
+      - cryptonite
+      - utf8-string
+      - memory
 
     ghc-options:
       - -Wall

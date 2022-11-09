@@ -1,11 +1,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiWayIf #-}
 
 module Lib.ArrayM
   ( beq,
     Lib.ArrayM.map,
+    Lib.ArrayM.mapM,
     concatenate,
     cons,
     singleton,
@@ -18,14 +18,15 @@ module Lib.ArrayM
     rotateR,
     shiftL,
     shiftR,
+    Lib.ArrayM.not,
     Lib.ArrayM.or,
     Lib.ArrayM.and,
     Lib.ArrayM.xor,
-    Lib.ArrayM.xorOld,
     flatten,
     cast,
     chunks,
     fullAdder,
+    chunkReverse
   )
 where
 
@@ -50,6 +51,11 @@ map :: (Mutable a, Mutable b) => (a -> b) -> ArrM a -> Comp (ArrM b)
 map f xs = do
   xs' <- fromArrayM xs
   toArrayM (Prelude.map f xs')
+
+mapM :: (Mutable a, Mutable b) => (a -> Comp b) -> ArrM a -> Comp (ArrM b)
+mapM f xs = do
+    xs' <- fromArrayM xs
+    toArrayM =<< Prelude.mapM f xs'
 
 -- | Array concatenation
 concatenate :: Mutable a => ArrM a -> ArrM a -> Comp (ArrM a)
@@ -108,20 +114,19 @@ rotateR = rotate . negate . fromIntegral
 shift :: Int -> ArrM Boolean -> Comp (ArrM Boolean)
 shift n xs = do
   xs' <- fromArrayM xs
-  let l = length xs'
-  result <- Lib.ArrayM.replicate l false
-  let rng =
-        if n >= 0
-          then [0 .. n - 1]
-          else [-n .. l - 1]
-  forM_ (zip rng xs') $ \(i, x) -> updateM result (i + n) x
-  return result
+  toArrayM $
+    if n > 0
+        then Prelude.replicate n false <> Prelude.take (lengthOf xs - n) xs'
+        else Prelude.drop (negate n) xs' <> Prelude.replicate (lengthOf xs + n) false
 
 shiftL :: Natural -> ArrM Boolean -> Comp (ArrM Boolean)
 shiftL = shift . fromIntegral
 
 shiftR :: Natural -> ArrM Boolean -> Comp (ArrM Boolean)
 shiftR = shift . negate . fromIntegral
+
+not :: ArrM Boolean -> Comp (ArrM Boolean)
+not = Lib.ArrayM.map neg
 
 or :: ArrM Boolean -> ArrM Boolean -> Comp (ArrM Boolean)
 or = bitOp Or
@@ -148,18 +153,10 @@ cast n xs = fromArrayM xs >>= cast' n
 cast' :: Int -> [Boolean] -> Comp (ArrM Boolean)
 cast' n xs = toArrayM $ xs ++ Prelude.replicate (n - length xs) false
 
-chunks :: Int -> ArrM Boolean -> Comp (ArrM (ArrM Boolean))
-chunks n xs = fromArrayM xs >>= f
-  where
-    f :: [Boolean] -> Comp (ArrM (ArrM Boolean))
-    f xs =
-      let size = length xs
-       in if
-              | size > n -> do
-                let (xs1, xs2) = splitAt n xs
-                join $ cons <$> toArrayM xs1 <*> f xs2
-              | size == n -> singleton =<< toArrayM xs
-              | otherwise -> singleton =<< cast' n xs
+chunks :: Mutable t => Int -> ArrM t -> Comp (ArrM (ArrM t))
+chunks n xs = do 
+    xs' <- group n <$> fromArrayM xs
+    toArrayM =<< Prelude.mapM toArrayM xs'
 
 --------------------------------------------------------------------------------
 
@@ -208,22 +205,22 @@ fullAdder as bs = do
     [0 .. width - 1]
   return result
 
+chunkReverse :: Mutable t => Int -> ArrM t -> Comp (ArrM (ArrM t))
+chunkReverse n xs = do
+    xs' <- group n <$> fromArrayM xs
+    toArrayM =<< Prelude.mapM (toArrayM . Prelude.reverse) xs'
+
+--------------------------------------------------------------------------------
+
+group :: Int -> [a] -> [[a]]
+group _ [] = []
+group n l
+  | n > 0 = Prelude.take n l : group n (Prelude.drop n l)
+  | otherwise = error "Negative or zero"
+
 -- | "T" for top-level
 fullAdderT :: Int -> Comp (ArrM Boolean)
 fullAdderT width = do
   xs <- inputs width >>= thaw
   ys <- inputs width >>= thaw
   fullAdder xs ys
-
------------
-
-xorOld :: Int -> ArrM Boolean -> ArrM Boolean -> Comp (ArrM Boolean)
-xorOld = bitOpOld Xor
-
-bitOpOld :: (Boolean -> Boolean -> Boolean) -> Int -> ArrM Boolean -> ArrM Boolean -> Comp (ArrM Boolean)
-bitOpOld op l as bs = do
-  bits <- forM [0 .. (l - 1)] $ \i -> do
-    a <- accessM as i
-    b <- accessM bs i
-    return (a `op` b)
-  toArrayM bits
