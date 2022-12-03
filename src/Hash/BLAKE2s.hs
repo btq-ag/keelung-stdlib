@@ -11,13 +11,14 @@ import Control.Monad
 import Data.Bits
 import Data.Function ((&))
 import Data.Word
-import Keelung
 import Lib.Array ((>.>))
 import qualified Lib.Array as Array
 import Lib.W32 (W32)
 import qualified Lib.W32 as W32
 import Lib.W8 (W8)
 import qualified Lib.W8 as W8
+import Keelung hiding (shift, shiftL, shiftR)
+
 
 --               | BLAKE2b          | BLAKE2s          |
 -- --------------+------------------+------------------+

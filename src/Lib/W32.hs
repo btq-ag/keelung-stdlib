@@ -7,7 +7,7 @@ import Control.Monad
 import Data.Bits (Bits (testBit), (.|.), shiftL)
 import Data.Word (Word8, Word32)
 import Data.List (foldl')
-import Keelung
+import Keelung hiding (shiftL, (.|.))
 import qualified Lib.ArrayM as ArrayM
 import qualified Lib.Array as Array
 import Lib.W8 (W8, W8M)
@@ -75,4 +75,4 @@ xor :: W32M -> W32M -> Comp W32M
 xor = ArrayM.xor
 
 complement :: W32M -> Comp W32M
-complement = ArrayM.map neg
+complement = ArrayM.map Keelung.complement

@@ -30,9 +30,9 @@ useless = do
 -- to be the square of the first input
 square :: Comp ()
 square = do
-  x <- input -- request for an input and bind it to 'x'
+  x <- inputNum -- request for an input and bind it to 'x'
   y <- input -- request for an input and bind it to 'y'
-  assert ((x * x) `Eq` y) -- assert that 'y' is the square of 'x'
+  assert ((x * x) `eq` y) -- assert that 'y' is the square of 'x'
 
 -- | A program that converts between Celsius and Fahrenheit degrees
 tempConvert :: Comp Number
@@ -57,9 +57,9 @@ allBe42 :: Comp ()
 allBe42 = do
   xs <- inputs 10
   -- access elements of `xs` with indices
-  forM_ [0 .. 9] $ \i -> assert (access xs i `Eq` 42)
+  forM_ [0 .. 9] $ \i -> assert (access xs i `eq` (42 :: Number))
   -- access elements of `xs` directly
-  forM_ (fromArray xs) $ \x -> assert (x `Eq` 42)
+  forM_ (fromArray xs) $ \x -> assert (x `eq` 42)
 
 -- | A program that sums all the 10 inputs
 summation :: Comp Number
@@ -102,13 +102,13 @@ birthday :: Comp Boolean
 birthday = do
   -- these inputs are private witnesses
   _hiddenYear <- inputNum
-  hiddenMonth <- input
-  hiddenDate <- input
+  hiddenMonth <- inputNum
+  hiddenDate <- inputNum
   -- these inputs are public inputs
   month <- input
   date <- input
 
-  return $ (hiddenMonth `Eq` month) `And` (hiddenDate `Eq` date)
+  return $ (hiddenMonth `eq` month) `And` (hiddenDate `eq` date)
 
 -- | A program that outputs the input to the 4th power (without computation reusing)
 notReused :: Comp (Arr Number)
@@ -126,18 +126,18 @@ reused = do
 
 packing :: Comp ()
 packing = do
-  x <- input
+  x <- inputNum
   x0 <- input
   x1 <- input
   x2 <- input
   x3 <- input
   x4 <- input
-  assert $ x `Eq` (x0 + x1 * 2 + x2 * 4 + x3 * 8 + x4 * 16)
-  assert $ x0 `Eq` (x0 * x0)
-  assert $ x1 `Eq` (x1 * x1)
-  assert $ x2 `Eq` (x2 * x2)
-  assert $ x3 `Eq` (x3 * x3)
-  assert $ x4 `Eq` (x4 * x4)
+  assert $ x `eq` (x0 + x1 * 2 + x2 * 4 + x3 * 8 + x4 * 16)
+  assert $ x0 `eq` (x0 * x0)
+  assert $ x1 `eq` (x1 * x1)
+  assert $ x2 `eq` (x2 * x2)
+  assert $ x3 `eq` (x3 * x3)
+  assert $ x4 `eq` (x4 * x4)
   return ()
 
 packing2 :: Comp ()
@@ -145,16 +145,16 @@ packing2 = do
   x <- input
   xs <- inputs 100
 
-  let x' = foldr (\x acc -> FromBool x + 2 * acc) 0 xs
-  assert $ x `Eq` x'
+  let x' = foldr (\x acc -> BtoN x + 2 * acc) 0 xs
+  assert $ x `eq` x'
   return ()
 
 packing3 :: Comp ()
 packing3 = do
-  x <- input
+  x <- inputNum
   xs <- fromArray <$> inputs 5
 
   let x' = foldr (\(i, x) acc -> x * fromInteger (2 ^ i) + acc) 0 (zip [0 ..] xs)
-  assert $ x `Eq` x'
-  forM_ xs $ \x -> assert (x `Eq` (x * x))
+  assert $ x `eq` x'
+  forM_ xs $ \x -> assert (x `eq` (x * x))
   return ()

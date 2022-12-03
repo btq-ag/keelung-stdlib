@@ -2,7 +2,7 @@
 module Lib.Bits where
 
 import Data.Maybe (fromMaybe)
-import Keelung
+import Keelung hiding (shift, shiftL, shiftR, rotate, Bits, (.|.), (.&.), complement)
 
 class Bits a where
   {-# MINIMAL

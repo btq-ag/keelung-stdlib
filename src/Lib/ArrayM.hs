@@ -26,12 +26,13 @@ module Lib.ArrayM
     cast,
     chunks,
     fullAdder,
-    chunkReverse
+    chunkReverse,
   )
 where
 
 import Control.Monad
-import Keelung
+import Keelung hiding (rotate, rotateL, rotateR, shift, shiftL, shiftR)
+import qualified Keelung
 import Numeric.Natural
 
 -- | See if 2 bit arrays of length `width` are equal.
@@ -41,7 +42,7 @@ beq width as bs =
     ( \acc i -> do
         a <- accessM as i
         b <- accessM bs i
-        return (acc `And` (a `BEq` b))
+        return (acc `And` (a `Keelung.eq` b))
     )
     true
     [0 .. width - 1]
@@ -54,8 +55,8 @@ map f xs = do
 
 mapM :: (Mutable a, Mutable b) => (a -> Comp b) -> ArrM a -> Comp (ArrM b)
 mapM f xs = do
-    xs' <- fromArrayM xs
-    toArrayM =<< Prelude.mapM f xs'
+  xs' <- fromArrayM xs
+  toArrayM =<< Prelude.mapM f xs'
 
 -- | Array concatenation
 concatenate :: Mutable a => ArrM a -> ArrM a -> Comp (ArrM a)
@@ -116,8 +117,8 @@ shift n xs = do
   xs' <- fromArrayM xs
   toArrayM $
     if n > 0
-        then Prelude.replicate n false <> Prelude.take (lengthOf xs - n) xs'
-        else Prelude.drop (negate n) xs' <> Prelude.replicate (lengthOf xs + n) false
+      then Prelude.replicate n false <> Prelude.take (lengthOf xs - n) xs'
+      else Prelude.drop (negate n) xs' <> Prelude.replicate (lengthOf xs + n) false
 
 shiftL :: Natural -> ArrM Boolean -> Comp (ArrM Boolean)
 shiftL = shift . fromIntegral
@@ -126,7 +127,7 @@ shiftR :: Natural -> ArrM Boolean -> Comp (ArrM Boolean)
 shiftR = shift . negate . fromIntegral
 
 not :: ArrM Boolean -> Comp (ArrM Boolean)
-not = Lib.ArrayM.map neg
+not = Lib.ArrayM.map complement
 
 or :: ArrM Boolean -> ArrM Boolean -> Comp (ArrM Boolean)
 or = bitOp Or
@@ -154,9 +155,9 @@ cast' :: Int -> [Boolean] -> Comp (ArrM Boolean)
 cast' n xs = toArrayM $ xs ++ Prelude.replicate (n - length xs) false
 
 chunks :: Mutable t => Int -> ArrM t -> Comp (ArrM (ArrM t))
-chunks n xs = do 
-    xs' <- group n <$> fromArrayM xs
-    toArrayM =<< Prelude.mapM toArrayM xs'
+chunks n xs = do
+  xs' <- group n <$> fromArrayM xs
+  toArrayM =<< Prelude.mapM toArrayM xs'
 
 --------------------------------------------------------------------------------
 
@@ -207,8 +208,8 @@ fullAdder as bs = do
 
 chunkReverse :: Mutable t => Int -> ArrM t -> Comp (ArrM (ArrM t))
 chunkReverse n xs = do
-    xs' <- group n <$> fromArrayM xs
-    toArrayM =<< Prelude.mapM (toArrayM . Prelude.reverse) xs'
+  xs' <- group n <$> fromArrayM xs
+  toArrayM =<< Prelude.mapM (toArrayM . Prelude.reverse) xs'
 
 --------------------------------------------------------------------------------
 

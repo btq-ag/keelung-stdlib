@@ -9,7 +9,7 @@ import GHC.Natural
 import Keelung
 import qualified Lib.ArrayM as ArrayM
 import Lib.W8 (W8, W8M)
-
+import qualified Keelung
 type W64M = ArrM Boolean
 
 type W64 = Arr Boolean
@@ -34,7 +34,7 @@ xor :: W64M -> W64M -> Comp W64M
 xor = ArrayM.xor
 
 complement :: W64M -> Comp W64M
-complement = ArrayM.map neg
+complement = ArrayM.map Keelung.complement
 
 equal :: W64M -> W64M -> Comp Boolean
 equal = ArrayM.beq 64

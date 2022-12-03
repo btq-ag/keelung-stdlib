@@ -11,7 +11,7 @@ import qualified Crypto.Hash.BLAKE2.BLAKE2s
 import Data.Bits
 import qualified Data.ByteString.Char8 as ByteString.Char8
 import Data.Word
-import Keelung
+import Keelung hiding (shift, shiftL, shiftR)
 import qualified Lib.ArrayM as ArrayM
 import Lib.W32 (W32M)
 import qualified Lib.W32 as W32

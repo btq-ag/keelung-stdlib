@@ -13,7 +13,7 @@ import qualified Data.ByteString.Char8 as ByteString.Char8
 import Data.WideWord.Word128 (Word128)
 import qualified Data.WideWord.Word128 as Word128
 import Data.Word
-import Keelung
+import Keelung hiding (shiftL)
 import qualified Lib.ArrayM as ArrayM
 import Lib.W64 (W64M)
 import qualified Lib.W64 as W64
