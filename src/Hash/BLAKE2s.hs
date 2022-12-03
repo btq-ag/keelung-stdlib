@@ -5,7 +5,7 @@
 
 {-# HLINT ignore "Use head" #-}
 
-module BLAKE2s where
+module Hash.BLAKE2s where
 
 import Control.Monad
 import Data.Bits

@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
-module SHA256 where
+module Hash.SHA256 where
 
 import Control.Monad
 import Control.Monad.Trans.Class

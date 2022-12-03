@@ -6,9 +6,9 @@
 
 module Tutorial where
 
-import qualified BLAKE2b
-import qualified BLAKE2sM
 import Control.Monad
+import qualified Hash.BLAKE2b as BLAKE2b
+import qualified Hash.BLAKE2sM as BLAKE2sM
 import Keelung
 import qualified Lib.Array as Array
 import qualified Lib.W8 as W8
@@ -97,7 +97,6 @@ blake2s msglen hashlen = do
 blake2sx :: Comp ()
 blake2sx = BLAKE2sM.test
 
-
 -- | Birthday voucher example
 birthday :: Comp Boolean
 birthday = do
@@ -155,7 +154,7 @@ packing3 = do
   x <- input
   xs <- fromArray <$> inputs 5
 
-  let x' = foldr (\(i,x) acc -> x * fromInteger (2^i) + acc) 0 (zip [0..] xs)
+  let x' = foldr (\(i, x) acc -> x * fromInteger (2 ^ i) + acc) 0 (zip [0 ..] xs)
   assert $ x `Eq` x'
   forM_ xs $ \x -> assert (x `Eq` (x * x))
   return ()

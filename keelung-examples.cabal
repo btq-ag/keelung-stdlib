@@ -25,11 +25,12 @@ source-repository head
 
 library
   exposed-modules:
-      BLAKE2b
-      BLAKE2s
-      BLAKE2sM
+      Hash.BLAKE2b
+      Hash.BLAKE2s
+      Hash.BLAKE2sM
       Hash.Poseidon
       Hash.Poseidon.Constant
+      Hash.SHA256
       Lib.Array
       Lib.ArrayM
       Lib.Bits
@@ -37,8 +38,6 @@ library
       Lib.W32
       Lib.W64
       Lib.W8
-      Practice
-      SHA256
       Tutorial
       Tutorial.FullAdder
       Tutorial.TempConv
@@ -67,11 +66,12 @@ test-suite keelung-examples-test
       Test.Lib.W32
       Test.SHA256
       Test.Util
-      BLAKE2b
-      BLAKE2s
-      BLAKE2sM
+      Hash.BLAKE2b
+      Hash.BLAKE2s
+      Hash.BLAKE2sM
       Hash.Poseidon
       Hash.Poseidon.Constant
+      Hash.SHA256
       Lib.Array
       Lib.ArrayM
       Lib.Bits
@@ -79,8 +79,6 @@ test-suite keelung-examples-test
       Lib.W32
       Lib.W64
       Lib.W8
-      Practice
-      SHA256
       Tutorial
       Tutorial.FullAdder
       Tutorial.TempConv
