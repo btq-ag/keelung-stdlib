@@ -23,7 +23,7 @@ mkTree xs = do
                 xs -> mkNodes xs 
             return $ node : rest
 
--- Generate the 
+-- Return the root as proof
 getMerkleProof :: Number -> Arr (Arr Number) -> Arr Number -> Comp Number
 getMerkleProof leaf siblings indices = do
   (_, digest) <-
@@ -39,8 +39,11 @@ getMerkleProof leaf siblings indices = do
 
 
 -- Quinary merkle tree
-checkMerkleProof :: Number -> Number -> Arr (Arr Number) -> Arr Number -> Comp ()
-checkMerkleProof root leaf siblings indices = do
+checkMerkleProof :: Int -> Number -> Comp ()
+checkMerkleProof depth root = do
+  leaf <- inputNum
+  siblings <- inputs2 depth 5
+  indices <- inputs depth
   (_, digest) <-
     foldlM
       ( \(i, digest) p -> do
