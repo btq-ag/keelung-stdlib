@@ -14,7 +14,7 @@ import qualified Lib.Array as Array
 import qualified Lib.W8 as W8
 
 -- | Outputs whether number is given.
-echo :: Comp Number
+echo :: Comp Field
 echo = do
   x <- input -- request for an input and bind it to 'x'
   return x -- return 'x'
@@ -22,7 +22,7 @@ echo = do
 -- | A program that expects 2 inputs and returns no output
 useless :: Comp ()
 useless = do
-  x <- inputNum -- request for an input and bind it to 'x'
+  x <- inputField -- request for an input and bind it to 'x'
   y <- inputBool -- request for an input and bind it to 'y'
   return () -- return nothing
 
@@ -30,12 +30,12 @@ useless = do
 -- to be the square of the first input
 square :: Comp ()
 square = do
-  x <- inputNum -- request for an input and bind it to 'x'
+  x <- inputField -- request for an input and bind it to 'x'
   y <- input -- request for an input and bind it to 'y'
   assert ((x * x) `eq` y) -- assert that 'y' is the square of 'x'
 
 -- | A program that converts between Celsius and Fahrenheit degrees
-tempConvert :: Comp Number
+tempConvert :: Comp Field
 tempConvert = do
   toFahrenheit <- input -- Bool
   degree <- input -- Num
@@ -46,7 +46,7 @@ tempConvert = do
       (degree - 32 * 5 / 9)
 
 -- | Read out the 4th input from an array of 10 inputs
-fourthInput :: Comp Number
+fourthInput :: Comp Field
 fourthInput = do
   xs <- inputs 10
   let fourth = access xs 3
@@ -57,17 +57,17 @@ allBe42 :: Comp ()
 allBe42 = do
   xs <- inputs 10
   -- access elements of `xs` with indices
-  forM_ [0 .. 9] $ \i -> assert (access xs i `eq` (42 :: Number))
+  forM_ [0 .. 9] $ \i -> assert (access xs i `eq` (42 :: Field))
   -- access elements of `xs` directly
   forM_ (fromArray xs) $ \x -> assert (x `eq` 42)
 
 -- | A program that sums all the 10 inputs
-summation :: Comp Number
+summation :: Comp Field
 summation = do
   xs <- inputs 10
   return $ sum (fromArray xs)
 
-returnArray :: Comp (Arr Number)
+returnArray :: Comp (Arr Field)
 returnArray = do
   x <- input
   return $ toArray [x, x, x, x]
@@ -101,9 +101,9 @@ blake2sx = BLAKE2sM.test
 birthday :: Comp Boolean
 birthday = do
   -- these inputs are private witnesses
-  _hiddenYear <- inputNum
-  hiddenMonth <- inputNum
-  hiddenDate <- inputNum
+  _hiddenYear <- inputField
+  hiddenMonth <- inputField
+  hiddenDate <- inputField
   -- these inputs are public inputs
   month <- input
   date <- input
@@ -111,14 +111,14 @@ birthday = do
   return $ (hiddenMonth `eq` month) `And` (hiddenDate `eq` date)
 
 -- | A program that outputs the input to the 4th power (without computation reusing)
-notReused :: Comp (Arr Number)
+notReused :: Comp (Arr Field)
 notReused = do
   x <- input
   let y = x * x * x * x
   return $ toArray [y, y]
 
 -- | A program that outputs the input to the 4th power (with computation reusing)
-reused :: Comp (Arr Number)
+reused :: Comp (Arr Field)
 reused = do
   x <- input
   y <- reuse $ x * x * x * x
@@ -126,7 +126,7 @@ reused = do
 
 packing :: Comp ()
 packing = do
-  x <- inputNum
+  x <- inputField
   x0 <- input
   x1 <- input
   x2 <- input
@@ -145,13 +145,13 @@ packing2 = do
   x <- input
   xs <- inputs 100
 
-  let x' = foldr (\x acc -> BtoN x + 2 * acc) 0 xs
+  let x' = foldr (\x acc -> BtoF x + 2 * acc) 0 xs
   assert $ x `eq` x'
   return ()
 
 packing3 :: Comp ()
 packing3 = do
-  x <- inputNum
+  x <- inputField
   xs <- fromArray <$> inputs 5
 
   let x' = foldr (\(i, x) acc -> x * fromInteger (2 ^ i) + acc) 0 (zip [0 ..] xs)

@@ -8,11 +8,11 @@ import Keelung
 import Prelude hiding (round)
 
 -- | "AddRoundConstants"
-arc :: Vector Number -> Int -> Arr Number -> Arr Number
+arc :: Vector Field -> Int -> Arr Field -> Arr Field
 arc c it = mapI (\i x -> x + c ! (it + i))
 
 -- | "SubWords"
-sbox :: Int -> Int -> Int -> Arr Number -> Arr Number
+sbox :: Int -> Int -> Int -> Arr Field -> Arr Field
 sbox f p r = mapI go
   where
     go 0 = fullSBox
@@ -21,7 +21,7 @@ sbox f p r = mapI go
     fullSBox x = x * x * x * x * x
 
 -- | "MixLayer"
-mix :: Vector (Vector Number) -> Arr Number -> Arr Number
+mix :: Vector (Vector Field) -> Arr Field -> Arr Field
 mix m state =
   toArray $
     map
@@ -29,7 +29,7 @@ mix m state =
       [0 .. length state - 1]
 
 -- | The Poseidon hash function
-hash :: Arr Number -> Comp Number
+hash :: Arr Field -> Comp Field
 hash msg = do
   -- check message length
   when

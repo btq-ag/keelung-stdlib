@@ -4,7 +4,7 @@ import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 import Keelung
 
-c :: Vector (Vector Number)
+c :: Vector (Vector Field)
 c =
   Vector.fromList
     [ Vector.fromList
@@ -1850,7 +1850,7 @@ c =
         ]
     ]
 
-m :: Vector (Vector (Vector Number))
+m :: Vector (Vector (Vector Field))
 m =
   Vector.fromList
     [ Vector.fromList
