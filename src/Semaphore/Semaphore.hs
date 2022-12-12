@@ -10,32 +10,29 @@ createGroup = mkTree
 
 semaphore :: Number -> Number -> Arr (Arr Number) -> Arr Number
           -> Number -> Number
-          -- Outpus a root of merkle tree and a hash of nullifiers
+          -- Public: root of merkle tree, hash of nullifiers
           -> Comp (Number, Number)
 semaphore identityNullifier identityTrapdoor siblings indices signalHash externalNullifier = do
-    secret <- hash $ toArray [identityNullifier, identityTrapdoor]
+    secret        <- hash $ toArray [identityNullifier, identityTrapdoor]
+    commitment    <- hash $ toArray [secret]
     nullifierHash <- hash $ toArray [externalNullifier, identityNullifier]
-    commitment <- hash $ toArray [secret]
-    root <- getMerkleProof commitment siblings indices
+    root          <- getMerkleProof commitment siblings indices
+    signalHashSquared <- reuse $ signalHash * signalHash
     return (root, nullifierHash)
 
 -- Check two things: the signal is valid (cast by someone in a group), and it is not double signaling
 checkSignalHash :: Int -> Number -> Arr Number -> Number -> Number -> Comp ()
 checkSignalHash depth root nullifierMap signalHash externalNullifier = do
     identityNullifier <- inputNum
-    identityTrapdoor <- inputNum
-    secret <- hash $ toArray [identityNullifier, identityTrapdoor]
-    nullifierHash <- hash $ toArray [externalNullifier, identityNullifier]
-
-    -- check commitment is in the tree
-    commitment <- hash $ toArray [secret]
-    path <- inputs2 depth 5
+    identityTrapdoor  <- inputNum
+    siblings <- inputs2 depth 5
     indices <- inputs depth
-    checkMerkleProof root commitment path indices
 
-    -- check the signal is calculated from the identity
+    -- check the commitment is in the tree
+    (root', nullifierHash) <- semaphore identityNullifier identityTrapdoor siblings indices signalHash externalNullifier
+
+    assert (root `Eq` root')
 
     -- check the signal has not been cast
-
     assert (neg $ has nullifierMap nullifierHash)
     
