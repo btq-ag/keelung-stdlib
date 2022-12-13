@@ -1,12 +1,9 @@
-module Semaphore.Semaphore where
+module Semaphore where
 
 import Hash.Poseidon
-import MerkleTreeMember
+import MerkleTree
 import Keelung
 import Prelude
-
-createGroup = mkTree
-
 
 semaphore :: Number -> Number -> Arr (Arr Number) -> Arr Number
           -> Number -> Number
@@ -21,8 +18,8 @@ semaphore identityNullifier identityTrapdoor siblings indices signalHash externa
     return (root, nullifierHash)
 
 -- Check two things: the signal is valid (cast by someone in a group), and it is not double signaling
-checkSignalHash :: Int -> Number -> Arr Number -> Number -> Number -> Comp ()
-checkSignalHash depth root nullifierMap signalHash externalNullifier = do
+checkSignal :: Int -> Number -> Arr Number -> Number -> Number -> Comp ()
+checkSignal depth root nullifierMap signalHash externalNullifier = do
     identityNullifier <- inputNum
     identityTrapdoor  <- inputNum
     siblings <- inputs2 depth 5
@@ -35,4 +32,3 @@ checkSignalHash depth root nullifierMap signalHash externalNullifier = do
 
     -- check the signal has not been cast
     assert (neg $ has nullifierMap nullifierHash)
-    
