@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveFoldable #-}
-module MerkleTreeMember where
+module MerkleTree where
 
 import Data.Foldable (foldlM)
 import Hash.Poseidon
