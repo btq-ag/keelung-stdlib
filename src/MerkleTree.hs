@@ -9,13 +9,13 @@ import qualified Lib.Array as Arr
 import Data.Vector.Unboxed.Base (Vector(V_Down))
 import GHC.Arr (indices)
 
-mkTree :: [Number] -> Comp Number
+mkTree :: [Field] -> Comp Field
 mkTree xs = do
     nodes <- mkNodes xs
     case nodes of
         [x] -> return x
         xs  -> mkTree xs
-  where mkNodes :: [Number] -> Comp [Number]
+  where mkNodes :: [Field] -> Comp [Field]
         mkNodes xs = do
             node <- hash $ toArray $ take 5 xs
             rest <- case drop 5 xs of
@@ -24,12 +24,12 @@ mkTree xs = do
             return $ node : rest
 
 -- Return the root as proof
-getMerkleProof :: Number -> Arr (Arr Number) -> Arr Number -> Comp Number
+getMerkleProof :: Field -> Arr (Arr Field) -> Arr Field -> Comp Field
 getMerkleProof leaf siblings indices = do
   (_, digest) <-
     foldlM
       ( \(i, digest) p -> do
-          assert (digest `Eq` choose p (access indices i))
+          assert (digest `eq` choose p (access indices i))
           p' <- hash p >>= reuse
           return (i + 1, p')
       )
@@ -37,30 +37,45 @@ getMerkleProof leaf siblings indices = do
       siblings
   return digest
 
-
--- Quinary merkle tree
-checkMerkleProof :: Int -> Number -> Comp ()
-checkMerkleProof depth root = do
-  leaf <- inputNum
+getMerkleProof' :: Int -> Comp Field
+getMerkleProof' depth = do
+  leaf <- inputField
   siblings <- inputs2 depth 5
   indices <- inputs depth
   (_, digest) <-
     foldlM
       ( \(i, digest) p -> do
-          assert (digest `Eq` choose p (access indices i))
+          assert (digest `eq` choose p (access indices i))
           p' <- hash p >>= reuse
           return (i + 1, p')
       )
       (0, leaf)
       siblings
-  assert (digest `Eq` root)
+  return digest
 
-choose :: Arr Number -> Number -> Number
+-- Quinary merkle tree
+checkMerkleProof :: Int -> Field -> Comp ()
+checkMerkleProof depth root = do
+  leaf <- inputField
+  siblings <- inputs2 depth 5
+  indices <- inputs depth
+  (_, digest) <-
+    foldlM
+      ( \(i, digest) p -> do
+          assert (digest `eq` choose p (access indices i))
+          p' <- hash p >>= reuse
+          return (i + 1, p')
+      )
+      (0, leaf)
+      siblings
+  assert (digest `eq` root)
+
+choose :: Arr Field -> Field -> Field
 choose xs i =
-  cond (i `Eq` 0) (access xs 0) $
-    cond (i `Eq` 1) (access xs 1) $
-      cond (i `Eq` 2) (access xs 2) $
-        cond (i `Eq` 3) (access xs 3) $
+  cond (i `eq` 0) (access xs 0) $
+    cond (i `eq` 1) (access xs 1) $
+      cond (i `eq` 2) (access xs 2) $
+        cond (i `eq` 3) (access xs 3) $
           access xs 4
 
 data Tree a = Node (Tree a) (Tree a) a | Leaf a
@@ -69,16 +84,16 @@ getRoot :: Tree a -> a
 getRoot (Node _ _ n) = n
 getRoot (Leaf n) = n
 
-type MerkleTree = Tree Number
+type MerkleTree = Tree Field
 data TaggedPair a = Fst a a | Snd a a
-type Path = Arr (TaggedPair Number)
+type Path = Arr (TaggedPair Field)
 
 dfs :: MerkleTree -> Comp (Maybe Path)
 dfs tree = do
-    leaf <- inputNum
+    leaf <- inputField
     return $ dfs' tree leaf
   where
-    dfs' :: MerkleTree -> Number -> Maybe Path
+    dfs' :: MerkleTree -> Field -> Maybe Path
     dfs' (Node t1 t2 node) n =
         if node == n then
             Just $ toArray []
