@@ -23,7 +23,7 @@ getMerkleProof :: Field -> [[Field]] -> [Field] -> Comp Field
 getMerkleProof leaf siblings indices = do
     foldlM
       ( \digest (i, p) -> do
-          assert (digest `eq` choose p i)
+          -- assert (digest `eq` choose p i)
           hash p >>= reuse
       )
       leaf

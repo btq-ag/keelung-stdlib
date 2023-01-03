@@ -29,15 +29,48 @@ dependencies:
 - transformers
 - vector
 
-library:
-  source-dirs: src
+ghc-options:
+- -Wall
+- -threaded
+- -rtsopts
+- -with-rtsopts=-N
+- -Werror=incomplete-patterns
+- -fno-warn-orphans
+
+source-dirs: src
+
+flags:
+  profile:
+    description: Generate executables that are for profiling only
+    manual: false
+    default: false
+
+executables:
+  profile-MerkleProof:
+    when:
+      - condition: flag(profile)
+        then:
+          main: Profiling.MerkleProof
+        else:
+          main: Dummy
+    source-dirs:        
+      - profiling
+  profile-Hash:
+    when:
+      - condition: flag(profile)
+        then:
+          main: Profiling.Hash
+        else:
+          main: Dummy
+    source-dirs:        
+      - profiling
+
 
 tests:
   keelung-examples-test:
     main: Test.hs
     source-dirs:
       - test
-      - src
     dependencies:
       - tasty
       - tasty-quickcheck
@@ -46,11 +79,6 @@ tests:
       - cryptonite
       - utf8-string
       - memory
-
-    ghc-options:
-      - -Wall
-      - -Werror=incomplete-patterns
-      - -fno-warn-orphans
 
 # executables:
 #   tutorial:

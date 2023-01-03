@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -23,8 +23,13 @@ source-repository head
   type: git
   location: https://github.com/githubuser/keelung-examples
 
-library
-  exposed-modules:
+flag profile
+  description: Generate executables that are for profiling only
+  manual: False
+  default: False
+
+executable profile-Hash
+  other-modules:
       Hash.BLAKE2b
       Hash.BLAKE2s
       Hash.BLAKE2sM
@@ -38,13 +43,17 @@ library
       Lib.W32
       Lib.W64
       Lib.W8
+      MerkleTree
+      Semaphore
       Tutorial
       Tutorial.FullAdder
       Tutorial.TempConv
-  other-modules:
+      Profiling.MerkleProof
       Paths_keelung_examples
   hs-source-dirs:
       src
+      profiling
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
   build-depends:
       base >=4.7 && <5
     , blake2
@@ -55,17 +64,15 @@ library
     , vector
     , wide-word
   default-language: Haskell2010
+  if flag(profile)
+    main-is: Profiling/Hash.hs
+    ghc-options: -main-is Profiling.Hash
+  else
+    main-is: Dummy.hs
+    ghc-options: -main-is Dummy
 
-test-suite keelung-examples-test
-  type: exitcode-stdio-1.0
-  main-is: Test.hs
+executable profile-MerkleProof
   other-modules:
-      Test.BLAKE2s
-      Test.Hash.Poseidon
-      Test.Lib.Array
-      Test.Lib.W32
-      Test.SHA256
-      Test.Util
       Hash.BLAKE2b
       Hash.BLAKE2s
       Hash.BLAKE2sM
@@ -79,14 +86,68 @@ test-suite keelung-examples-test
       Lib.W32
       Lib.W64
       Lib.W8
+      MerkleTree
+      Semaphore
       Tutorial
       Tutorial.FullAdder
       Tutorial.TempConv
+      Profiling.Hash
       Paths_keelung_examples
   hs-source-dirs:
-      test
       src
-  ghc-options: -Wall -Werror=incomplete-patterns -fno-warn-orphans
+      profiling
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
+  build-depends:
+      base >=4.7 && <5
+    , blake2
+    , bytestring
+    , galois-field
+    , keelung
+    , transformers
+    , vector
+    , wide-word
+  default-language: Haskell2010
+  if flag(profile)
+    main-is: Profiling/MerkleProof.hs
+    ghc-options: -main-is Profiling.MerkleProof
+  else
+    main-is: Dummy.hs
+    ghc-options: -main-is Dummy
+
+test-suite keelung-examples-test
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  other-modules:
+      Hash.BLAKE2b
+      Hash.BLAKE2s
+      Hash.BLAKE2sM
+      Hash.Poseidon
+      Hash.Poseidon.Constant
+      Hash.SHA256
+      Lib.Array
+      Lib.ArrayM
+      Lib.Bits
+      Lib.U32
+      Lib.W32
+      Lib.W64
+      Lib.W8
+      MerkleTree
+      Semaphore
+      Tutorial
+      Tutorial.FullAdder
+      Tutorial.TempConv
+      Test.BLAKE2s
+      Test.Hash.Poseidon
+      Test.Lib.Array
+      Test.Lib.W32
+      Test.Semaphore
+      Test.SHA256
+      Test.Util
+      Paths_keelung_examples
+  hs-source-dirs:
+      src
+      test
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
   build-depends:
       QuickCheck
     , base >=4.7 && <5
