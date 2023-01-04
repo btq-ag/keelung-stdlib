@@ -1,9 +1,10 @@
 module Profiling.Hash where
 
 import Keelung
+import Keelung.Error
+import Keelung.Constraint.R1CS
 import Keelung.Prof
-import Keelung.Field
 import MerkleTree
 
-main :: IO ()
-main = compileProfWithOpts 1 (optMemory 16 8 256) GF181 (getMerkleProof' 10) >> return ()
+prof :: IO (Either Error (R1CS Integer))
+prof = compileProfWithOpts 1 [] (rtsoptMemory 16 8 256) GF181 (getMerkleProof' 10)

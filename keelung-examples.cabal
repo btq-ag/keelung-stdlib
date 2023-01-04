@@ -28,50 +28,7 @@ flag profile
   manual: False
   default: False
 
-executable profile-Hash
-  other-modules:
-      Hash.BLAKE2b
-      Hash.BLAKE2s
-      Hash.BLAKE2sM
-      Hash.Poseidon
-      Hash.Poseidon.Constant
-      Hash.SHA256
-      Lib.Array
-      Lib.ArrayM
-      Lib.Bits
-      Lib.U32
-      Lib.W32
-      Lib.W64
-      Lib.W8
-      MerkleTree
-      Semaphore
-      Tutorial
-      Tutorial.FullAdder
-      Tutorial.TempConv
-      Profiling.MerkleProof
-      Paths_keelung_examples
-  hs-source-dirs:
-      src
-      profiling
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
-  build-depends:
-      base >=4.7 && <5
-    , blake2
-    , bytestring
-    , galois-field
-    , keelung
-    , transformers
-    , vector
-    , wide-word
-  default-language: Haskell2010
-  if flag(profile)
-    main-is: Profiling/Hash.hs
-    ghc-options: -main-is Profiling.Hash
-  else
-    main-is: Dummy.hs
-    ghc-options: -main-is Dummy
-
-executable profile-MerkleProof
+executable profile
   other-modules:
       Hash.BLAKE2b
       Hash.BLAKE2s
@@ -92,6 +49,7 @@ executable profile-MerkleProof
       Tutorial.FullAdder
       Tutorial.TempConv
       Profiling.Hash
+      Profiling.MerkleProof
       Paths_keelung_examples
   hs-source-dirs:
       src
@@ -101,6 +59,7 @@ executable profile-MerkleProof
       base >=4.7 && <5
     , blake2
     , bytestring
+    , directory
     , galois-field
     , keelung
     , transformers
@@ -108,8 +67,8 @@ executable profile-MerkleProof
     , wide-word
   default-language: Haskell2010
   if flag(profile)
-    main-is: Profiling/MerkleProof.hs
-    ghc-options: -main-is Profiling.MerkleProof
+    main-is: Profiling.hs
+    ghc-options: -main-is Profiling
   else
     main-is: Dummy.hs
     ghc-options: -main-is Dummy
@@ -154,6 +113,7 @@ test-suite keelung-examples-test
     , blake2
     , bytestring
     , cryptonite
+    , directory
     , galois-field
     , keelung
     , memory

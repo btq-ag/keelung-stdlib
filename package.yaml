@@ -28,6 +28,7 @@ dependencies:
 - bytestring
 - transformers
 - vector
+- directory
 
 ghc-options:
 - -Wall
@@ -46,20 +47,11 @@ flags:
     default: false
 
 executables:
-  profile-MerkleProof:
+  profile:
     when:
       - condition: flag(profile)
         then:
-          main: Profiling.MerkleProof
-        else:
-          main: Dummy
-    source-dirs:        
-      - profiling
-  profile-Hash:
-    when:
-      - condition: flag(profile)
-        then:
-          main: Profiling.Hash
+          main: Profiling
         else:
           main: Dummy
     source-dirs:        
