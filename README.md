@@ -15,15 +15,15 @@ stack build
 2. Import the programs to be profiled in `profiling/Profiling.hs` and specify the file names
    of their `.prof` files, see `Profiling.hs` for examples.
 
-r. Build the examples with `profile` package flag enabled, a `profile` executable will be compiled:
+3. Build the examples with `profile` package flag enabled, a `profile` executable will be compiled:
 ```bash
 stack build --flag keelung-examples:profile
 ```
 
-3. Execute the generated `profile` executable will generate all the `.prof` files. E.g.
+4. Execute the generated `profile` executable will generate all the `.prof` files. E.g.
 ```bash
 stack exec profile
 ```
 will generate `hash.prof` and `MerkleProof.prof` in the directory.
 
-4. Use [ghc-prof-flamegraph](https://github.com/fpco/ghc-prof-flamegraph) to generate flame graphs.
+5. Use [ghc-prof-flamegraph](https://github.com/fpco/ghc-prof-flamegraph) to generate flame graphs.
