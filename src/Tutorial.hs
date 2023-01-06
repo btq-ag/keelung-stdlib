@@ -10,8 +10,6 @@ import Control.Monad
 import qualified Hash.BLAKE2b as BLAKE2b
 import qualified Hash.BLAKE2sM as BLAKE2sM
 import Keelung
-import qualified Lib.Array as Array
-import qualified Lib.W8 as W8
 
 -- | Outputs whether number is given.
 echo :: Comp Field
@@ -22,8 +20,8 @@ echo = do
 -- | A program that expects 2 inputs and returns no output
 useless :: Comp ()
 useless = do
-  x <- inputField -- request for an input and bind it to 'x'
-  y <- inputBool -- request for an input and bind it to 'y'
+  _x <- inputField -- request for an input and bind it to 'x'
+  _y <- inputBool -- request for an input and bind it to 'y'
   return () -- return nothing
 
 -- | A program that expects the second input
@@ -142,19 +140,19 @@ packing = do
 
 packing2 :: Comp ()
 packing2 = do
-  x <- input
-  xs <- inputs 100
+  a <- input
+  as <- inputs 5
 
-  let x' = foldr (\x acc -> BtoF x + 2 * acc) 0 xs
-  assert $ x `eq` x'
+  let a' = foldr (\x acc -> BtoF x + 2 * acc) 0 as
+  assert $ a `eq` a'
   return ()
 
 packing3 :: Comp ()
 packing3 = do
-  x <- inputField
-  xs <- fromArray <$> inputs 5
+  a <- inputField
+  as <- fromArray <$> inputs 5
 
-  let x' = foldr (\(i, x) acc -> x * fromInteger (2 ^ i) + acc) 0 (zip [0 ..] xs)
-  assert $ x `eq` x'
-  forM_ xs $ \x -> assert (x `eq` (x * x))
+  let a' = foldr (\(i, x) acc -> x * fromInteger (2 ^ (i :: Int)) + acc) 0 (zip [0 ..] as)
+  assert $ a `eq` a'
+  forM_ as $ \x -> assert (x `eq` (x * x))
   return ()
