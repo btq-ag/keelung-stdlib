@@ -8,8 +8,7 @@ import Data.Word (Word64)
 import GHC.Natural
 import Keelung
 import qualified Lib.ArrayM as ArrayM
-import Lib.W8 (W8, W8M)
-import qualified Keelung
+import Lib.W8 (W8M)
 type W64M = ArrM Boolean
 
 type W64 = Arr Boolean

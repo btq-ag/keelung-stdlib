@@ -11,7 +11,6 @@ import Keelung hiding (shiftL, (.|.))
 import qualified Lib.ArrayM as ArrayM
 import qualified Lib.Array as Array
 import Lib.W8 (W8, W8M)
-import qualified Lib.W8 as W8
 import GHC.Natural
 
 type W32M = ArrM Boolean

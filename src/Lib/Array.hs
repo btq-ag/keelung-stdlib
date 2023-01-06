@@ -2,7 +2,6 @@ module Lib.Array where
 
 import Control.Monad
 import Keelung hiding (rotate, shift, shiftL, shiftR)
-import qualified Keelung
 import Prelude hiding (drop, map, replicate, take, zipWith)
 import qualified Prelude
 
