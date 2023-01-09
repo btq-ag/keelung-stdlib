@@ -48,6 +48,13 @@ jobs:
         key: ${{ runner.os }}-stack-work-profiling-${{ matrix.plan.ghc }}-${{ hashFiles('**.yaml') }}
         restore-keys: |
              ${{ runner.os }}-stack-work-profiling-${{ matrix.plan.ghc }}
+    - name: 💾 Cache keelung-compiler/.stack-work
+      uses: actions/cache@v2
+      with:
+        path: keelung-compiler/.stack-work
+        key: ${{ runner.os }}-keelung-compiler-stack-work-profiling-${{ matrix.plan.ghc }}-${{ hashFiles('keelung-compiler/package.yaml') }}
+        restore-keys: |
+             ${{ runner.os }}-keelung-compiler-stack-work-profiling-${{ matrix.plan.ghc }}
     - name: 💾 Cache keelung-examples/.stack-work
       uses: actions/cache@v2
       with:
@@ -72,22 +79,24 @@ jobs:
     - name: 🔨 Build and install the compiler with profiling enabled
       run: |
         stack install --profile
-    - name: 📥 Checkout examples
+    - name: 📥 Checkout compiler
       uses: actions/checkout@v3
       with:
-        repository: 'btq-ag/keelung-examples'
-        path: './keelung-examples'
+        repository: 'btq-ag/keelung-compiler'
+        path: './keelung-compiler'
         ref: 'main'
-        ssh-key: ${{ secrets.KEELUNG_EXAMPLES_CI }}
-    - name: 🔨 Build the examples
+        ssh-key: ${{ secrets.KEELUNG_COMPILER_CI }}
+    - name: 🔨 Build and intsall the compiler with profiling enabled
       run: |
-        cd ./keelung-examples
-        stack build --flag keelung-examples:profile
+        cd ./keelung-compiler
+        stack install --profile
+        cd ..
     - name: 🔥 Install ghc-prof-flamegraph
       run: |
         stack install ghc-prof-flamegraph
     - name: 🩺 Run profilings
       run: |
+        cd $GITHUB_WORKSPACE
         stack exec profile
 
     - name: 📥 Checkout profiling repo
