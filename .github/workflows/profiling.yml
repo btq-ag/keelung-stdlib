@@ -109,7 +109,7 @@ jobs:
 
     - name: Remove old profiling files
       run: |
-        rm -r "$GITHUB_WORKSPACE/results"/*
+        find "$GITHUB_WORKSPACE/results" -mindepth 1 -delete
 
     - name: 🍳 Prepare .prof files and flamegraphs
       run: |
