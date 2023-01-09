@@ -19,4 +19,4 @@ runProfs ((f, filename) : fs) = do
     r <- f
     case r of
         Left err -> fail ("Generating " <> filename <> ": " <> show err)
-        Right _  -> renameFile "keelungc.prof" filename >> runProfs fs
+        Right _  -> runProfs fs
