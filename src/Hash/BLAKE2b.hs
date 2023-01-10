@@ -3,8 +3,9 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Use head" #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
-module Hash.BLAKE2b where
+module Hash.BLAKE2b (hash, test) where
 
 import Control.Monad
 import qualified Crypto.Hash.BLAKE2.BLAKE2b
@@ -82,27 +83,27 @@ hash ::
   Comp (ArrM W8M)
 hash msg msgLen hashLen = do
   --  Initialize State vector h with IV
-  hash <- mapM W64.fromWord64 iv >>= toArrayM
+  state <- mapM W64.fromWord64 iv >>= toArrayM
 
   -- rub key size and desired hash length into hash[0]
   iv0 <- W64.fromWord64 (iv !! 0)
   spice <- W64.fromWord64 (fromIntegral x0101kknn)
   h0 <- iv0 `W64.xor` spice
-  updateM hash 0 h0
+  updateM state 0 h0
 
   forM_ [0, 128 .. msgLen - 128 - 1] $ \i -> do
     chunk <- ArrayM.drop i msg
-    compress hash chunk (fromIntegral (i + 128)) False
+    compress state chunk (fromIntegral (i + 128)) False
 
   --  Compress the final bytes
   remain <- ArrayM.drop (msgLen `div` 128 * 128) msg
   chunk <- pad remain 128
-  compress hash chunk (fromIntegral msgLen) True
+  compress state chunk (fromIntegral msgLen) True
 
   -- ref <- W64.fromWord64 0x0D4D1C983FA580BA
   -- assert =<< W64.equal ref =<< accessM hash 0
 
-  ArrayM.take hashLen =<< W64.toW8Chunks hash
+  ArrayM.take hashLen =<< W64.toW8Chunks state
   where
     -- from key size ('kk') and desired hash length ('nn')
     -- for example, if key size = 17 bytes, desired hash length = 3
@@ -126,67 +127,59 @@ compress ::
   Word128 -> -- count of bytes that have been compressed before
   Bool -> -- is this the final round of compression?
   Comp ()
-compress hash msg count final = do
+compress oldHash msg count final = do
   -- allocate 16 Word64 as local state
   vs <- W64.zeros 16
 
   -- First 8 items are copied from old hash
   forM_ [0 .. 7] $ \j -> do
-    updateM vs j =<< accessM hash j
+    updateM vs j =<< accessM oldHash j
 
   -- Remaining 8 items are initialized from the IV
   forM_ [8 .. 15] $ \i -> do
     -- creates a W64 from Word64s in `iv`
-    init <- W64.fromWord64 (iv !! (i - 8))
-    updateM vs i init
+    W64.fromWord64 (iv !! (i - 8)) >>= updateM vs i
 
   --  Mix the 128-bit counter into V12 & V13
   v12 <- accessM vs 12
-  v12 <- W64.fromWord64 (Word128.word128Lo64 count) >>= (v12 `W64.xor`)
-  updateM vs 12 v12
+  W64.fromWord64 (Word128.word128Lo64 count) >>= (v12 `W64.xor`) >>= updateM vs 12
   v13 <- accessM vs 13
-  v13 <- W64.fromWord64 (Word128.word128Hi64 count) >>= (v13 `W64.xor`)
-  updateM vs 13 v13
+  W64.fromWord64 (Word128.word128Hi64 count) >>= (v13 `W64.xor`) >>= updateM vs 13
 
   -- If this is the last block then invert all the bits in V14
   when final $ do
     updateM vs 14 =<< W64.complement =<< accessM vs 14
 
-  msg <- W64.fromW8Chunks msg
-
-  -- ref <- W64.fromHex "6a09e667f2bdc948"
-  -- pred <- accessM hash 0 >>= W64.equal ref
-  -- assert pred
+  msg' <- W64.fromW8Chunks msg
 
   -- 12 rounds of cryptographic message mixing
   forM_ [0 .. 11] $ \i -> do
     -- Select message mixing schedule for this round.
     -- BLAKE2b uses 12 rounds, while 'sigma' has only 10 entries.
     let indices = sigma !! i
-    mix vs 0 4 8 12 msg (indices !! 0) (indices !! 1)
-    mix vs 1 5 9 13 msg (indices !! 2) (indices !! 3)
-    mix vs 2 6 10 14 msg (indices !! 4) (indices !! 5)
-    mix vs 3 7 11 15 msg (indices !! 6) (indices !! 7)
-    mix vs 0 5 10 15 msg (indices !! 8) (indices !! 9)
-    mix vs 1 6 11 12 msg (indices !! 10) (indices !! 11)
-    mix vs 2 7 8 13 msg (indices !! 12) (indices !! 13)
-    mix vs 3 4 9 14 msg (indices !! 14) (indices !! 15)
+    mix vs 0 4 8 12 msg' (indices !! 0) (indices !! 1)
+    mix vs 1 5 9 13 msg' (indices !! 2) (indices !! 3)
+    mix vs 2 6 10 14 msg' (indices !! 4) (indices !! 5)
+    mix vs 3 7 11 15 msg' (indices !! 6) (indices !! 7)
+    mix vs 0 5 10 15 msg' (indices !! 8) (indices !! 9)
+    mix vs 1 6 11 12 msg' (indices !! 10) (indices !! 11)
+    mix vs 2 7 8 13 msg' (indices !! 12) (indices !! 13)
+    mix vs 3 4 9 14 msg' (indices !! 14) (indices !! 15)
 
-  -- Mix the upper and lower halves of `vs` into 'hash'
+  -- Mix the upper and lower halves of `vs` into 'oldHash'
   --  h0..7 ← h0..7 xor V0..7
   forM_ [0 .. 7] $ \i -> do
-    -- updateM hash i =<< join (W64.xor <$> accessM hash i <*> accessM vs i)
-    h <- accessM hash i
+    h <- accessM oldHash i
     v <- accessM vs i
     x <- h `W64.xor` v
-    updateM hash i x
+    updateM oldHash i x
 
   --  h0..7 ← h0..7 xor V8..15
   forM_ [0 .. 7] $ \i -> do
-    h <- accessM hash i
+    h <- accessM oldHash i
     v <- accessM vs (i + 8)
     x <- h `W64.xor` v
-    updateM hash i x
+    updateM oldHash i x
 
 mix ::
   ArrM W64M ->

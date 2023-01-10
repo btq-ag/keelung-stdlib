@@ -1,7 +1,7 @@
 module Hash.Poseidon (hash) where
 
 import Control.Monad (when)
-import Data.Foldable (foldlM, toList)
+import Data.Foldable (foldlM)
 import Data.Vector (Vector, (!))
 import qualified Hash.Poseidon.Constant as Constant
 import Keelung

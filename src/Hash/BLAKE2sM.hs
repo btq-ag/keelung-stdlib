@@ -3,8 +3,9 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Use head" #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
-module Hash.BLAKE2sM where
+module Hash.BLAKE2sM (hash, test) where
 
 import Control.Monad
 import qualified Crypto.Hash.BLAKE2.BLAKE2s
@@ -78,27 +79,27 @@ hash ::
   Comp (ArrM W8M)
 hash msg msgLen hashLen = do
   --  Initialize State vector h with IV
-  hash <- mapM W32.fromWord32 iv >>= toArrayM
+  state <- mapM W32.fromWord32 iv >>= toArrayM
 
-  -- rub key size and desired hash length into hash[0]
+  -- rub key size and desired hash length into state[0]
   iv0 <- W32.fromWord32 (iv !! 0)
   spice <- W32.fromWord32 (fromIntegral x0101kknn)
   h0 <- iv0 `W32.xor` spice
-  updateM hash 0 h0
+  updateM state 0 h0
 
   forM_ [0, 64 .. msgLen - 64 - 1] $ \i -> do
     chunk <- ArrayM.drop i msg
-    compress hash chunk (fromIntegral (i + 64)) False
+    compress state chunk (fromIntegral (i + 64)) False
 
   --  Compress the final bytes
   remain <- ArrayM.drop (msgLen `div` 64 * 64) msg
   chunk <- pad remain 64
-  compress hash chunk (fromIntegral msgLen) True
+  compress state chunk (fromIntegral msgLen) True
 
   -- ref <- W32.fromWord32 0x0D4D1C983FA580BA
-  -- assert =<< W32.equal ref =<< accessM hash 0
+  -- assert =<< W32.equal ref =<< accessM state 0
 
-  ArrayM.take hashLen =<< W32.toW8Chunks hash
+  ArrayM.take hashLen =<< W32.toW8Chunks state
   where
     -- from key size ('kk') and desired hash length ('nn')
     -- for example, if key size = 17 bytes, desired hash length = 3

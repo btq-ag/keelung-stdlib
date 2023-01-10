@@ -46,6 +46,9 @@ flags:
     manual: false
     default: false
 
+library:
+  source-dirs: src
+
 executables:
   profile:
     when:

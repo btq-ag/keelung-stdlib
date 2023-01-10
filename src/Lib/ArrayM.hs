@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 module Lib.ArrayM
   ( beq,
@@ -26,7 +27,9 @@ module Lib.ArrayM
     cast,
     chunks,
     fullAdder,
+    fullAdderSlow,
     chunkReverse,
+    fullAdderT
   )
 where
 
