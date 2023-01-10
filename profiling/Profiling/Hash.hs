@@ -6,5 +6,5 @@ import Keelung.Constraint.R1CS
 import Keelung.Prof
 import MerkleTree
 
-prof :: IO (Either Error (R1CS Integer))
-prof = compileProfWithOpts 1 [] (rtsoptMemory 16 8 256 <> [ "-po\"$GITHUB_WORKSPACE\"/hash" ]) GF181 (getMerkleProof' 10)
+prof :: String -> IO (Either Error (R1CS Integer))
+prof path = compileProfWithOpts 1 [] (rtsoptMemory 16 8 256 <> [ "-po" <> path <> "/hash" ]) GF181 (getMerkleProof' 10)
