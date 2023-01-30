@@ -1,4 +1,4 @@
-# issue of HLS 1.7
+
 # see: https://www.reddit.com/r/haskell/comments/uk5wg7/hls_not_working/
 #      https://www.reddit.com/r/haskell/comments/ucmo1t/ann_haskell_language_server_1700/
 system-ghc: true
@@ -23,7 +23,7 @@ system-ghc: true
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/7.yaml
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/7.yaml
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -46,11 +46,10 @@ packages:
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
 extra-deps:
-- galois-field-1.0.2@sha256:1f7d31836da8553caf50682e9e0d7cb7edf2146bafb67bed1b6b68031278bbaf,4876
-- poly-0.4.0.0@sha256:75c243113712745dab5d2f4a52643705e146473770af212f9e0ce3d87a83f2ed,2123
-- protolude-0.2.4@sha256:ec6c01be631050f8c1b9153a782d329a52609d058cb4b461104222862f7792af,2292
+- git: https://github.com/btq-ag/galois-field.git
+  commit: d7d0da6b5df8045afdfb820ba8d08f34dc4c3e58
 - git: git@github.com:btq-ag/keelung.git
-  commit: 0e56d0c873072b885da826e1552968fd074bda31
+  commit: 7693b169f602d4155df87121d142ca86cebe5241
 
 # - git: git@github.com:btq-ag/keelung.git
 #   commit: bdae8187a4ff2fb1d11f0fabcb6dd0e3f5252377
