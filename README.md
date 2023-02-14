@@ -1,10 +1,10 @@
-# Keelung Examples for demos and profilings
+# Keelung standard library
 
-## How to build the examples:
+## How to build the library:
 ```bash
 stack build
 ```
-
+<!-- 
 ## How to profile Keelung programs
 
 0. Make sure the `keelungc` installed is compiled with `stack build --profile`.
@@ -17,7 +17,7 @@ stack build
 
 3. Build the examples with `profile` package flag enabled, a `profile` executable will be compiled:
 ```bash
-stack build --flag keelung-examples:profile
+stack build --flag keelung-stdlib:profile
 ```
 
 4. Execute the generated `profile` executable will generate all the `.prof` files. E.g.
@@ -26,4 +26,4 @@ stack exec profile
 ```
 will generate `hash.prof` and `MerkleProof.prof` in the directory.
 
-5. Use [ghc-prof-flamegraph](https://github.com/fpco/ghc-prof-flamegraph) to generate flame graphs.
+5. Use [ghc-prof-flamegraph](https://github.com/fpco/ghc-prof-flamegraph) to generate flame graphs. -->

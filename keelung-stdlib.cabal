@@ -1,14 +1,14 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.1.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 
-name:           keelung-examples
+name:           keelung-stdlib
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/keelung-examples#readme>
-homepage:       https://github.com/githubuser/keelung-examples#readme
-bug-reports:    https://github.com/githubuser/keelung-examples/issues
+description:    Please see the README on GitHub at <https://github.com/githubuser/keelung-stdlib#readme>
+homepage:       https://github.com/githubuser/keelung-stdlib#readme
+bug-reports:    https://github.com/githubuser/keelung-stdlib/issues
 author:         Ting-GIan LUA
 maintainer:     ty.lai@btq.li
 copyright:      2022 BTQ AG
@@ -21,7 +21,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/keelung-examples
+  location: https://github.com/githubuser/keelung-stdlib
 
 flag profile
   description: Generate executables that are for profiling only
@@ -30,6 +30,7 @@ flag profile
 
 library
   exposed-modules:
+      ECC
       Hash.BLAKE2b
       Hash.BLAKE2s
       Hash.BLAKE2sM
@@ -49,7 +50,7 @@ library
       Tutorial.FullAdder
       Tutorial.TempConv
   other-modules:
-      Paths_keelung_examples
+      Paths_keelung_stdlib
   hs-source-dirs:
       src
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
@@ -67,6 +68,7 @@ library
 
 executable profile
   other-modules:
+      ECC
       Hash.BLAKE2b
       Hash.BLAKE2s
       Hash.BLAKE2sM
@@ -87,7 +89,7 @@ executable profile
       Tutorial.TempConv
       Profiling.Hash
       Profiling.MerkleProof
-      Paths_keelung_examples
+      Paths_keelung_stdlib
   hs-source-dirs:
       src
       profiling
@@ -110,10 +112,11 @@ executable profile
     main-is: Dummy.hs
     ghc-options: -main-is Dummy
 
-test-suite keelung-examples-test
+test-suite keelung-stdlib-test
   type: exitcode-stdio-1.0
   main-is: Test.hs
   other-modules:
+      ECC
       Hash.BLAKE2b
       Hash.BLAKE2s
       Hash.BLAKE2sM
@@ -139,7 +142,7 @@ test-suite keelung-examples-test
       Test.Semaphore
       Test.SHA256
       Test.Util
-      Paths_keelung_examples
+      Paths_keelung_stdlib
   hs-source-dirs:
       src
       test

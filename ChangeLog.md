@@ -1,3 +1,3 @@
-# Changelog for keelung-examples
+# Changelog for keelung-stdlib
 
 ## Unreleased changes

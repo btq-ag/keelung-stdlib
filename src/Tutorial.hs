@@ -7,8 +7,8 @@
 module Tutorial where
 
 import Control.Monad
-import qualified Hash.BLAKE2b as BLAKE2b
-import qualified Hash.BLAKE2sM as BLAKE2sM
+-- import qualified Hash.BLAKE2b as BLAKE2b
+-- import qualified Hash.BLAKE2sM as BLAKE2sM
 import Keelung
 
 -- | Outputs whether number is given.
@@ -46,29 +46,29 @@ tempConvert = do
 -- | Read out the 4th input from an array of 10 inputs
 fourthInput :: Comp Field
 fourthInput = do
-  xs <- inputs 10
-  let fourth = access xs 3
+  xs <- inputList 10
+  let fourth = xs !! 3
   return fourth
 
 -- | A program that asserts all 10 inputs to be 42
 allBe42 :: Comp ()
 allBe42 = do
-  xs <- inputs 10
+  xs <- inputList 10
   -- access elements of `xs` with indices
-  forM_ [0 .. 9] $ \i -> assert (access xs i `eq` (42 :: Field))
+  forM_ [0 .. 9] $ \i -> assert (xs !! i `eq` (42 :: Field))
   -- access elements of `xs` directly
-  forM_ (fromArray xs) $ \x -> assert (x `eq` 42)
+  forM_ xs $ \x -> assert (x `eq` 42)
 
 -- | A program that sums all the 10 inputs
 summation :: Comp Field
 summation = do
-  xs <- inputs 10
-  return $ sum (fromArray xs)
+  xs <- inputList 10
+  return $ sum xs
 
-returnArray :: Comp (Arr Field)
+returnArray :: Comp [Field]
 returnArray = do
   x <- input
-  return $ toArray [x, x, x, x]
+  return [x, x, x, x]
 
 -- > interpret GF181 (blake2b 2 3) [1,0,0,0,0,1,1,0, 0,1,0,0,0,1,1,0]
 --   Right [10110010 11101100 00100010]
@@ -77,23 +77,23 @@ returnArray = do
 -- a = 0b01100001, b = 0b01000010
 -- the answer is Blake2b-24("ab") = 0x4d3744, which is
 -- 0b01001101, 0b00110111, 0b1000100
-blake2b :: Int -> Int -> Comp (ArrM (ArrM Boolean))
-blake2b msglen hashlen = do
-  msg <- inputs2 msglen 8 >>= thaw2
-  BLAKE2b.hash msg msglen hashlen
+-- blake2b :: Int -> Int -> Comp (ArrM (ArrM Boolean))
+-- blake2b msglen hashlen = do
+--   msg <- inputs2 msglen 8 >>= thaw2
+--   BLAKE2b.hash msg msglen hashlen
 
 -- > interpret GF181 (blake2s 2 3) [1,0,0,0,0,1,1,0, 0,1,0,0,0,1,1,0]
 --   Right [0,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,1,1]
 -- > compileO2 GF181 (blake2s 8 32)
 --   R1C constraints (70126)
 -- NOTE: Zcash uses 21006 constraints. See https://zips.z.cash/protocol/protocol.pdf (Appendix A.3.7)
-blake2s :: Int -> Int -> Comp (ArrM (ArrM Boolean))
-blake2s msglen hashlen = do
-  msg <- inputs2 msglen 8 >>= thaw2
-  BLAKE2sM.hash msg msglen hashlen
+-- blake2s :: Int -> Int -> Comp (ArrM (ArrM Boolean))
+-- blake2s msglen hashlen = do
+--   msg <- inputs2 msglen 8 >>= thaw2
+--   BLAKE2sM.hash msg msglen hashlen
 
-blake2sx :: Comp ()
-blake2sx = BLAKE2sM.test
+-- blake2sx :: Comp ()
+-- blake2sx = BLAKE2sM.test
 
 -- | Birthday voucher example
 birthday :: Comp Boolean
@@ -109,18 +109,18 @@ birthday = do
   return $ (hiddenMonth `eq` month) `And` (hiddenDate `eq` date)
 
 -- | A program that outputs the input to the 4th power (without computation reusing)
-notReused :: Comp (Arr Field)
+notReused :: Comp [Field]
 notReused = do
   x <- input
   let y = x * x * x * x
-  return $ toArray [y, y]
+  return [y, y]
 
 -- | A program that outputs the input to the 4th power (with computation reusing)
-reused :: Comp (Arr Field)
+reused :: Comp [Field]
 reused = do
   x <- input
   y <- reuse $ x * x * x * x
-  return $ toArray [y, y]
+  return [y, y]
 
 packing :: Comp ()
 packing = do
@@ -141,7 +141,7 @@ packing = do
 packing2 :: Comp ()
 packing2 = do
   a <- input
-  as <- inputs 5
+  as <- inputList 5
 
   let a' = foldr (\x acc -> BtoF x + 2 * acc) 0 as
   assert $ a `eq` a'
@@ -150,7 +150,7 @@ packing2 = do
 packing3 :: Comp ()
 packing3 = do
   a <- inputField
-  as <- fromArray <$> inputs 5
+  as <- inputList 5
 
   let a' = foldr (\(i, x) acc -> x * fromInteger (2 ^ (i :: Int)) + acc) 0 (zip [0 ..] as)
   assert $ a `eq` a'

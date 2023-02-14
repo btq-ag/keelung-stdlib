@@ -6,10 +6,10 @@ import Keelung
 
 ------------------------------------------------------------------------------
 
-fullAdder :: Arr Boolean -> Arr Boolean -> Arr Boolean
+fullAdder :: [Boolean]-> [Boolean]-> [Boolean]
 fullAdder as bs =
-  let zipped = zip (fromArray as) (fromArray bs)
-   in toArray $ fst $ foldl f ([], false) zipped
+  let zipped = zip as bs
+   in fst $ foldl f ([], false) zipped
   where
     f :: ([Boolean], Boolean) -> (Boolean, Boolean) -> ([Boolean], Boolean)
     f (acc, carry) (a, b) =
@@ -18,8 +18,8 @@ fullAdder as bs =
        in (acc ++ [value], nextCarry)
 
 -- | "T" for top-level
-fullAdderT :: Int -> Comp (Arr Boolean)
+fullAdderT :: Int -> Comp [Boolean]
 fullAdderT width = do
-  xs <- inputs width
-  ys <- inputs width
+  xs <- inputList width
+  ys <- inputList width
   return $ fullAdder xs ys

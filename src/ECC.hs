@@ -1,18 +1,16 @@
 {-# LANGUAGE DataKinds #-}
+
 module ECC where
+
 import Keelung
-import Keelung.Monad
-import Keelung.Syntax.Typed (Expr(..))
-
-import Data.Maybe
-
 
 type EC = (Field, Field)
+
 newtype Point = Point (EC, Field, Field)
   deriving (Eq, Show)
 
 instance Reusable Point where
-  reuse p@(Point ((a, b), x, y)) = do
+  reuse (Point ((a, b), x, y)) = do
     a' <- reuse a
     b' <- reuse b
     x' <- reuse x
@@ -31,19 +29,20 @@ instance Reusable Point where
 
 run :: Int -> Comp (Field, Field)
 run n = do
-    a <- inputField
-    b <- inputField
-    x <- inputField
-    y <- inputField
-    assert ((y * y) `eq` ((x * x * x) + (x * a) + b))
-    Point (_, x', y') <- Point ((a, b), x, y) `times` n
-    return (x', y')
+  a <- inputField
+  b <- inputField
+  x <- inputField
+  y <- inputField
+  assert ((y * y) `eq` ((x * x * x) + (x * a) + b))
+  Point (_, x', y') <- Point ((a, b), x, y) `times` n
+  return (x', y')
   where
     times :: Point -> Int -> Comp Point
     times point 1 = return point
     times point number = do
-        if even number then (point `times` (number `div` 2)) >>= reuse >>= \p -> return $ double p
-                       else (point `times` (pred number)) >>= reuse >>= \p -> return $ p `add` point
+      if even number
+        then (point `times` (number `div` 2)) >>= reuse >>= \p -> return $ double p
+        else (point `times` pred number) >>= reuse >>= \p -> return $ p `add` point
     add :: Point -> Point -> Point
     add p0@(Point (ec, x0, y0)) p1@(Point (_, x1, y1))
       | p0 == p1 = double p0
@@ -57,7 +56,7 @@ run n = do
     double (Point ((a, b), x, y))
       | y == 0 = Point ((a, b), 0, 0)
       | otherwise = Point ((a, b), x0, y0)
-        where
-          slope = (x * x * 3 + a) / (y + y)
-          x0 = slope * slope - x - x
-          y0 = (x - x0) * slope - y
+      where
+        slope = (x * x * 3 + a) / (y + y)
+        x0 = slope * slope - x - x
+        y0 = (x - x0) * slope - y
