@@ -41,9 +41,9 @@ library
       Lib.ArrayM
       Lib.Bits
       Lib.U32
-      Lib.W32
-      Lib.W64
-      Lib.W8
+      Lib.W32M
+      Lib.W64M
+      Lib.W8M
       MerkleTree
       Semaphore
       Tutorial
@@ -53,6 +53,8 @@ library
       Paths_keelung_stdlib
   hs-source-dirs:
       src
+  default-extensions:
+      ImportQualifiedPost
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
   build-depends:
       base >=4.7 && <5
@@ -79,9 +81,9 @@ executable profile
       Lib.ArrayM
       Lib.Bits
       Lib.U32
-      Lib.W32
-      Lib.W64
-      Lib.W8
+      Lib.W32M
+      Lib.W64M
+      Lib.W8M
       MerkleTree
       Semaphore
       Tutorial
@@ -93,6 +95,8 @@ executable profile
   hs-source-dirs:
       src
       profiling
+  default-extensions:
+      ImportQualifiedPost
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
   build-depends:
       base >=4.7 && <5
@@ -127,9 +131,9 @@ test-suite keelung-stdlib-test
       Lib.ArrayM
       Lib.Bits
       Lib.U32
-      Lib.W32
-      Lib.W64
-      Lib.W8
+      Lib.W32M
+      Lib.W64M
+      Lib.W8M
       MerkleTree
       Semaphore
       Tutorial
@@ -146,6 +150,8 @@ test-suite keelung-stdlib-test
   hs-source-dirs:
       src
       test
+  default-extensions:
+      ImportQualifiedPost
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
   build-depends:
       QuickCheck

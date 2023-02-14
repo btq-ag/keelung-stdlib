@@ -49,6 +49,9 @@ flags:
 library:
   source-dirs: src
 
+default-extensions:
+  - ImportQualifiedPost
+
 executables:
   profile:
     when:

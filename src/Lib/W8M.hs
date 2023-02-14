@@ -1,51 +1,57 @@
 {-# LANGUAGE DataKinds #-}
 
-module Lib.W8 where
+module Lib.W8M where
 
--- import Control.Monad
--- import Data.Bits (Bits (testBit))
--- import Data.Word (Word8)
--- import Keelung
--- import qualified Lib.Array as Array
--- import qualified Lib.ArrayM as ArrayM
+import Control.Monad
+import Data.Bits qualified as Bits
+import Data.Word (Word8)
+import Keelung
+import Lib.ArrayM qualified as ArrayM
 
--- type W8M = ArrM Boolean
+type W8M = ArrM Boolean
 
--- type W8 = Arr Boolean
+instance Bits Word8 where
+  (.&.) = (Bits..&.)
+  (.|.) = (Bits..|.)
+  (.^.) = Bits.xor
+  rotate = Bits.rotate
+  shift = Bits.shift
+  x !!! i = Boolean (Bits.testBit x i)
+  complement = Bits.complement
 
--- -- | Construct a W8 from a Word8
--- fromWord8 :: Word8 -> Comp W8M
--- fromWord8 word = toArrayM $ Prelude.map (Boolean . testBit word) [0 .. 7]
+-- | Construct a W8 from a Word8
+fromWord8 :: Word8 -> Comp W8M
+fromWord8 word = toArrayM $ Prelude.map (word !!!) [0 .. 7]
 
--- -- | Construct a W8 from a Char
--- fromChar :: Char -> Comp W8M
--- fromChar = fromWord8 . toEnum . fromEnum
+-- | Construct a W8 from a Char
+fromChar :: Char -> Comp W8M
+fromChar = fromWord8 . toEnum . fromEnum
 
--- -- | Construct an array of W8s from a String
--- fromString :: String -> Comp (ArrM W8M)
--- fromString xs = mapM fromChar xs >>= toArrayM
+-- | Construct an array of W8s from a String
+fromString :: String -> Comp (ArrM W8M)
+fromString xs = mapM fromChar xs >>= toArrayM
 
--- -- | Equality on W8
--- equal :: W8M -> W8M -> Comp Boolean
--- equal = ArrayM.beq 8
+-- | Equality on W8
+equal :: W8M -> W8M -> Comp Boolean
+equal = ArrayM.beq 8
 
--- zero :: Comp W8M
--- zero = ArrayM.zeroBits 8
+zero :: Comp W8M
+zero = ArrayM.zeroBits 8
 
--- zeros :: Int -> Comp (ArrM W8M)
--- zeros n = zero >>= ArrayM.replicate n
+zeros :: Int -> Comp (ArrM W8M)
+zeros n = zero >>= ArrayM.replicate n
 
--- toW8Chunks :: ArrM (ArrM Boolean) -> Comp (ArrM W8M)
--- toW8Chunks = ArrayM.flatten >=> ArrayM.chunks 8
+toW8Chunks :: ArrM (ArrM Boolean) -> Comp (ArrM W8M)
+toW8Chunks = ArrayM.flatten >=> ArrayM.chunks 8
 
--- toWordNBE :: Int -> ArrM W8M -> Comp (ArrM (ArrM Boolean))
--- toWordNBE n xs = ArrayM.mapM ArrayM.flatten =<< ArrayM.chunkReverse (n `div` 8) xs
+toWordNBE :: Int -> ArrM W8M -> Comp (ArrM (ArrM Boolean))
+toWordNBE n xs = ArrayM.mapM ArrayM.flatten =<< ArrayM.chunkReverse (n `div` 8) xs
 
--- fromWordNBE :: ArrM (ArrM Boolean) -> Comp (ArrM W8M)
--- fromWordNBE xs = do
---     n <- lengthOf . head <$> fromArrayM xs
---     xs' <- ArrayM.chunks 8 =<< ArrayM.flatten xs
---     ArrayM.flatten =<< ArrayM.chunkReverse (n `div` 8) xs'
+fromWordNBE :: ArrM (ArrM Boolean) -> Comp (ArrM W8M)
+fromWordNBE xs = do
+  n <- lengthOf . head <$> fromArrayM xs
+  xs' <- ArrayM.chunks 8 =<< ArrayM.flatten xs
+  ArrayM.flatten =<< ArrayM.chunkReverse (n `div` 8) xs'
 
 -- ----
 -- zero' :: W8
