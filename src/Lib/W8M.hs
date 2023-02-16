@@ -3,21 +3,11 @@
 module Lib.W8M where
 
 import Control.Monad
-import Data.Bits qualified as Bits
 import Data.Word (Word8)
 import Keelung
 import Lib.ArrayM qualified as ArrayM
 
 type W8M = ArrM Boolean
-
-instance Bits Word8 where
-  (.&.) = (Bits..&.)
-  (.|.) = (Bits..|.)
-  (.^.) = Bits.xor
-  rotate = Bits.rotate
-  shift = Bits.shift
-  x !!! i = Boolean (Bits.testBit x i)
-  complement = Bits.complement
 
 -- | Construct a W8 from a Word8
 fromWord8 :: Word8 -> Comp W8M

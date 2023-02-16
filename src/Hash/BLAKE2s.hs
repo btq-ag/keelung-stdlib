@@ -1,24 +1,16 @@
-{-# LANGUAGE DataKinds #-}
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
-{-# LANGUAGE GADTs #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Use head" #-}
-
 module Hash.BLAKE2s where
 
 -- import Control.Monad
--- import Data.Bits
 -- import Data.Function ((&))
 -- import Data.Word
--- import Lib.Array ((>.>))
--- import qualified Lib.Array as Array
--- import Lib.W32 (W32)
--- import qualified Lib.W32 as W32
--- import Lib.W8 (W8)
--- import qualified Lib.W8 as W8
--- import Keelung hiding (shift, shiftL, shiftR)
+-- -- import Lib.Array ((>.>))
 
+-- import Keelung
+-- import Lib.Array qualified as Array
+-- import Lib.W32M (W32M)
+-- import Lib.W32M qualified as W32M
+-- import Lib.W8M (W8M)
+-- import Lib.W8M qualified as W8M
 
 -- --               | BLAKE2b          | BLAKE2s          |
 -- -- --------------+------------------+------------------+
@@ -67,12 +59,12 @@ module Hash.BLAKE2s where
 -- bb :: Int
 -- bb = 64
 
--- hash :: Arr W8 -> Word64 -> Word32 -> Word32 -> Comp (Arr W8)
+-- hash :: [W8M] -> Word64 -> Word32 -> Word32 -> Comp [W8M]
 -- hash xs ll kk nn =
---   let xs' = (Array.chunks 16 . W32.fromW8Chunks' . W8.pad' 64) xs
+--   let xs' = (Array.chunks 16 . W32M.fromW8MChunks' . W8M.pad' 64) xs
 --    in blake2 xs' ll kk nn
 
--- blake2 :: Arr (Arr W32) -> Word64 -> Word32 -> Word32 -> Comp (Arr W8)
+-- blake2 :: [[W32M]] -> Word64 -> Word32 -> Word32 -> Comp [W8M]
 -- blake2 d ll kk nn = do
 --   let dd = length d
 --   let d' = fromArray d
@@ -92,16 +84,16 @@ module Hash.BLAKE2s where
 --           )
 --       $ ih kk nn
 
---   return $ Array.take (fromIntegral nn) (W8.toW8Chunks' h)
+--   return $ Array.take (fromIntegral nn) (W8M.toW8MChunks' h)
 
 -- -- init state
--- ih :: Word32 -> Word32 -> Arr W32
+-- ih :: Word32 -> Word32 -> Arr W32M
 -- ih kk nn =
---   W32.fromWord32List'
---     >.> Array.update' 0 (Array.xor . W32.fromWord32' $ 0x01010000 `xor` shiftL kk 8 `xor` nn)
+--   W32M.fromWord32List'
+--     >.> Array.update' 0 (Array.xor . W32M.fromWord32' $ 0x01010000 `xor` shiftL kk 8 `xor` nn)
 --     $ take 8 iv
 
--- compress :: Arr W32 -> Word64 -> Bool -> Arr W32 -> Comp (Arr W32)
+-- compress :: Arr W32M -> Word64 -> Bool -> Arr W32M -> Comp [W32M]
 -- compress m t f h = do
 --   v <- compress' 10 m t f h
 
@@ -115,13 +107,14 @@ module Hash.BLAKE2s where
 --       h
 --       [0 .. 7]
 
--- compress' :: Int -> Arr W32 -> Word64 -> Bool -> Arr W32 -> Comp (Arr W32)
+-- compress' :: Int -> Arr W32M -> Word64 -> Bool -> Arr W32M -> Comp [W32M]
 -- compress' r m t f h = do
 --   let v =
---         Array.concatenate (Array.take 8 h) . W32.fromWord32List'
---           >.> (Array.update' 12 . Array.xor . W32.fromWord32' . word64lo32) t
---           >.> (Array.update' 13 . Array.xor . W32.fromWord32' . word64hi32) t
---           >.> applyWhen f (Array.update' 14 . Array.xor . W32.fromWord32' $ 0xFFFFFFFF)
+--         Array.concatenate (Array.take 8 h)
+--           . W32M.fromWord32List'
+--           >.> (Array.update' 12 . Array.xor . W32M.fromWord32' . word64lo32) t
+--           >.> (Array.update' 13 . Array.xor . W32M.fromWord32' . word64hi32) t
+--           >.> applyWhen f (Array.update' 14 . Array.xor . W32M.fromWord32' $ 0xFFFFFFFF)
 --           $ take 8 iv
 
 --   foldM
@@ -140,7 +133,7 @@ module Hash.BLAKE2s where
 --     v
 --     [0 .. r - 1]
 
--- mix :: Int -> Int -> Int -> Int -> Arr W32 -> Int -> Int -> Arr W32 -> Comp (Arr W32)
+-- mix :: Int -> Int -> Int -> Int -> Arr W32M -> Int -> Int -> Arr W32M -> Comp [W32M]
 -- mix a b c d msg xi yi v = do
 --   let va = access v a
 --   let vb = access v b
@@ -160,12 +153,12 @@ module Hash.BLAKE2s where
 --   vc'' <- vc' `Array.fullAdder` vd''
 --   let vb'' = vb' `Array.xor` vc'' & Array.rotateL r4
 
---   return $
---     Array.update a va''
+--   return
+--     $ Array.update a va''
 --       >.> Array.update b vb''
 --       >.> Array.update c vc''
 --       >.> Array.update d vd''
---       $ v
+--     $ v
 --   where
 --     (r1, r2, r3, r4) = (16, 12, 8, 7)
 

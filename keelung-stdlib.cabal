@@ -39,8 +39,6 @@ library
       Hash.SHA256
       Lib.Array
       Lib.ArrayM
-      Lib.Bits
-      Lib.U32
       Lib.W32M
       Lib.W64M
       Lib.W8M
@@ -79,8 +77,6 @@ executable profile
       Hash.SHA256
       Lib.Array
       Lib.ArrayM
-      Lib.Bits
-      Lib.U32
       Lib.W32M
       Lib.W64M
       Lib.W8M
@@ -129,8 +125,6 @@ test-suite keelung-stdlib-test
       Hash.SHA256
       Lib.Array
       Lib.ArrayM
-      Lib.Bits
-      Lib.U32
       Lib.W32M
       Lib.W64M
       Lib.W8M

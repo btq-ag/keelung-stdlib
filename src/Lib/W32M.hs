@@ -4,7 +4,6 @@
 module Lib.W32M where
 
 import Control.Monad
-import Data.Bits qualified as Bits
 import Data.List (foldl')
 import Data.Word (Word32, Word8)
 import GHC.Natural
@@ -13,17 +12,6 @@ import Lib.ArrayM qualified as ArrayM
 import Lib.W8M (W8M)
 
 type W32M = ArrM Boolean
-
--- type W32 = Arr Boolean
-
-instance Bits Word32 where
-  (.&.) = (Bits..&.)
-  (.|.) = (Bits..|.)
-  (.^.) = Bits.xor
-  rotate = Bits.rotate
-  shift = Bits.shift
-  x !!! i = Boolean (Bits.testBit x i)
-  complement = Bits.complement
 
 fromWord32 :: Word32 -> Comp W32M
 fromWord32 word = toArrayM $ map (word !!!) [0 .. 31]

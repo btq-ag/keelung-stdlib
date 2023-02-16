@@ -1,23 +1,21 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE GADTs #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Use head" #-}
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
-
 module Hash.BLAKE2sM () where
+-- import qualified Lib.W32M as W32M
+-- import Lib.W32M (W32M)
+-- import Keelung
+-- import Data.Word (Word64, Word32)
+-- import qualified Lib.W8M as W8M
 
--- import Control.Monad
--- import qualified Crypto.Hash.BLAKE2.BLAKE2s
--- import Data.Bits
+-- -- import Control.Monad
+-- -- import qualified Crypto.Hash.BLAKE2.BLAKE2s
+-- -- import Data.Bits
 -- import qualified Data.ByteString.Char8 as ByteString.Char8
--- import Data.Word
--- import Keelung hiding (shift, shiftL, shiftR)
--- import qualified Lib.ArrayM as ArrayM
--- import Lib.W32 (W32M)
--- import qualified Lib.W32 as W32
--- import Lib.W8 (W8M)
--- import qualified Lib.W8 as W8
+-- -- import Data.Word
+-- -- import Keelung hiding (shift, shiftL, shiftR)
+-- -- import qualified Lib.ArrayM as ArrayM
+-- -- import Lib.W32 (W32M)
+-- -- import qualified Lib.W32 as W32
+-- -- import Lib.W8 (W8M)
+-- -- import qualified Lib.W8 as W8
 
 -- -- | Initialization vector
 -- iv :: [Word32]
@@ -52,7 +50,7 @@ module Hash.BLAKE2sM () where
 -- test = do
 --   let message = concat $ replicate 200 "abc"
 --   let hashlen = 32 -- must <= 32
---   message' <- W8.fromString message
+--   message' <- W8M.fromString message
 --   result <-
 --     hash
 --       message'
@@ -62,12 +60,12 @@ module Hash.BLAKE2sM () where
 --   let msgBS = ByteString.Char8.pack message
 --   let ansBS = Crypto.Hash.BLAKE2.BLAKE2s.hash hashlen ByteString.Char8.empty msgBS
 
---   ans <- W8.fromString (ByteString.Char8.unpack ansBS)
+--   ans <- W8M.fromString (ByteString.Char8.unpack ansBS)
 
 --   forM_ [0 .. hashlen - 1] $ \i -> do
 --     x <- accessM result i
 --     y <- accessM ans i
---     W8.equal x y >>= assert
+--     W8M.equal x y >>= assert
 
 -- hash ::
 --   -- | Message to be hashed
@@ -79,12 +77,12 @@ module Hash.BLAKE2sM () where
 --   Comp (ArrM W8M)
 -- hash msg msgLen hashLen = do
 --   --  Initialize State vector h with IV
---   state <- mapM W32.fromWord32 iv >>= toArrayM
+--   state <- mapM W32M.fromWord32 iv >>= toArrayM
 
 --   -- rub key size and desired hash length into state[0]
---   iv0 <- W32.fromWord32 (iv !! 0)
---   spice <- W32.fromWord32 (fromIntegral x0101kknn)
---   h0 <- iv0 `W32.xor` spice
+--   iv0 <- W32M.fromWord32 (iv !! 0)
+--   spice <- W32M.fromWord32 (fromIntegral x0101kknn)
+--   h0 <- iv0 `W32M.xor` spice
 --   updateM state 0 h0
 
 --   forM_ [0, 64 .. msgLen - 64 - 1] $ \i -> do
@@ -96,10 +94,10 @@ module Hash.BLAKE2sM () where
 --   chunk <- pad remain 64
 --   compress state chunk (fromIntegral msgLen) True
 
---   -- ref <- W32.fromWord32 0x0D4D1C983FA580BA
---   -- assert =<< W32.equal ref =<< accessM state 0
+--   -- ref <- W32M.fromWord32 0x0D4D1C983FA580BA
+--   -- assert =<< W32M.equal ref =<< accessM state 0
 
---   ArrayM.take hashLen =<< W32.toW8Chunks state
+--   ArrayM.take hashLen =<< W32M.toW8Chunks state
 --   where
 --     -- from key size ('kk') and desired hash length ('nn')
 --     -- for example, if key size = 17 bytes, desired hash length = 3
@@ -114,7 +112,7 @@ module Hash.BLAKE2sM () where
 --    in if len' >= len
 --         then return xs
 --         else do
---           xs' <- W8.zeros (len - len')
+--           xs' <- W8M.zeros (len - len')
 --           ArrayM.concatenate xs xs'
 
 -- compress ::
@@ -125,7 +123,7 @@ module Hash.BLAKE2sM () where
 --   Comp ()
 -- compress hash msg count final = do
 --   -- allocate 16 Word32 as local state
---   vs <- W32.zeros 16
+--   vs <- W32M.zeros 16
 
 --   -- First 8 items are copied from old hash
 --   forM_ [0 .. 7] $ \j -> do
@@ -134,25 +132,25 @@ module Hash.BLAKE2sM () where
 --   -- Remaining 8 items are initialized from the IV
 --   forM_ [8 .. 15] $ \i -> do
 --     -- creates a W32 from Word32s in `iv`
---     init <- W32.fromWord32 (iv !! (i - 8))
+--     init <- W32M.fromWord32 (iv !! (i - 8))
 --     updateM vs i init
 
 --   --  Mix the 128-bit counter into V12 & V13
 --   v12 <- accessM vs 12
---   v12 <- W32.fromWord32 (fromIntegral count) >>= (v12 `W32.xor`)
+--   v12 <- W32M.fromWord32 (fromIntegral count) >>= (v12 `W32M.xor`)
 --   updateM vs 12 v12
 --   v13 <- accessM vs 13
---   v13 <- W32.fromWord32 (fromIntegral (shiftR count 32)) >>= (v13 `W32.xor`)
+--   v13 <- W32M.fromWord32 (fromIntegral (shiftR count 32)) >>= (v13 `W32M.xor`)
 --   updateM vs 13 v13
 
 --   -- If this is the last block then invert all the bits in V14
 --   when final $ do
---     updateM vs 14 =<< W32.complement =<< accessM vs 14
+--     updateM vs 14 =<< W32M.complement =<< accessM vs 14
 
---   msg <- W32.fromW8Chunks msg
+--   msg <- W32M.fromW8Chunks msg
 
---   -- ref <- W32.fromHex "6a09e667f2bdc948"
---   -- pred <- accessM hash 0 >>= W32.equal ref
+--   -- ref <- W32M.fromHex "6a09e667f2bdc948"
+--   -- pred <- accessM hash 0 >>= W32M.equal ref
 --   -- assert pred
 
 --   -- 10 rounds of cryptographic message mixing
@@ -172,17 +170,17 @@ module Hash.BLAKE2sM () where
 --   -- Mix the upper and lower halves of `vs` into 'hash'
 --   --  h0..7 ← h0..7 xor V0..7
 --   forM_ [0 .. 7] $ \i -> do
---     -- updateM hash i =<< join (W32.xor <$> accessM hash i <*> accessM vs i)
+--     -- updateM hash i =<< join (W32M.xor <$> accessM hash i <*> accessM vs i)
 --     h <- accessM hash i
 --     v <- accessM vs i
---     x <- h `W32.xor` v
+--     x <- h `W32M.xor` v
 --     updateM hash i x
 
 --   --  h0..7 ← h0..7 xor V8..15
 --   forM_ [0 .. 7] $ \i -> do
 --     h <- accessM hash i
 --     v <- accessM vs (i + 8)
---     x <- h `W32.xor` v
+--     x <- h `W32M.xor` v
 --     updateM hash i x
 
 -- mix ::
@@ -205,27 +203,27 @@ module Hash.BLAKE2sM () where
 --   y <- accessM msg yi
 
 --   -- Va ← Va + Vb + x   (with input)
---   a <- W32.add a b
---   a <- W32.add x a
+--   a <- W32M.add a b
+--   a <- W32M.add x a
 --   -- Vd ← (Vd xor Va) rotateright 32
---   d <- W32.xor d a
---   d <- W32.rotateR 16 d
+--   d <- W32M.xor d a
+--   d <- W32M.rotateR 16 d
 --   -- Vc ← Vc + Vd       (no input)
---   c <- W32.add c d
+--   c <- W32M.add c d
 --   -- Vb ← (Vb xor Vc) rotateright 24
---   b <- W32.xor b c
---   b <- W32.rotateR 12 b
+--   b <- W32M.xor b c
+--   b <- W32M.rotateR 12 b
 --   -- Va ← Va + Vb + y   (with input)
---   a <- W32.add a b
---   a <- W32.add y a
+--   a <- W32M.add a b
+--   a <- W32M.add y a
 --   -- Vd ← (Vd xor Va) rotateright 16
---   d <- W32.xor d a
---   d <- W32.rotateR 8 d
+--   d <- W32M.xor d a
+--   d <- W32M.rotateR 8 d
 --   -- Vc ← Vc + Vd       (no input)
---   c <- W32.add c d
+--   c <- W32M.add c d
 --   -- Vb ← (Vb xor Vc) rotateright 63
---   b <- W32.xor b c
---   b <- W32.rotateR 7 b
+--   b <- W32M.xor b c
+--   b <- W32M.rotateR 7 b
 
 --   -- write back to `vs`
 --   updateM vs ai a

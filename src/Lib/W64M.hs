@@ -5,7 +5,6 @@ module Lib.W64M where
 -- import Control.Monad
 
 import Control.Monad
-import Data.Bits qualified as Bits
 import Data.Word (Word64)
 import GHC.Natural
 import Keelung
@@ -13,15 +12,6 @@ import Lib.ArrayM qualified as ArrayM
 import Lib.W8M (W8M)
 
 type W64M = ArrM Boolean
-
-instance Bits Word64 where
-  (.&.) = (Bits..&.)
-  (.|.) = (Bits..|.)
-  (.^.) = Bits.xor
-  rotate = Bits.rotate
-  shift = Bits.shift
-  x !!! i = Boolean (Bits.testBit x i)
-  complement = Bits.complement
 
 fromWord64 :: Word64 -> Comp W64M
 fromWord64 word = toArrayM $ map (word !!!) [0 .. 63]
