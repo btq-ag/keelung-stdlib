@@ -23,16 +23,16 @@ instance Reusable Point where
 --     let xs' = map (fromMaybe (error "") . decode) xs
 --     return $ Misc (xs', [], [])
 
--- decode :: Array Int Expr -> Point
--- decode arr = let [a,b,x,y] = toList arr
---               in (a, b, x, y)
-
-run :: Int -> Comp (Field, Field)
-run n = do
+genPoint' :: Int -> Comp (Field, Field)
+genPoint' n = do
   a <- inputField
   b <- inputField
   x <- inputField
   y <- inputField
+  genPoint n (Point ((a,b),x,y))
+
+genPoint :: Int -> Point -> Comp (Field, Field)
+genPoint n (Point ((a, b), x, y)) = do
   assert ((y * y) `eq` ((x * x * x) + (x * a) + b))
   Point (_, x', y') <- Point ((a, b), x, y) `times` n
   return (x', y')
