@@ -25,10 +25,10 @@ instance Reusable Point where
 
 genPoint' :: Int -> Comp (Field, Field)
 genPoint' n = do
-  a <- inputField
-  b <- inputField
-  x <- inputField
-  y <- inputField
+  a <- inputField Private
+  b <- inputField Private
+  x <- inputField Private
+  y <- inputField Private
   genPoint n (Point ((a,b),x,y))
 
 genPoint :: Int -> Point -> Comp (Field, Field)

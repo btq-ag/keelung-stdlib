@@ -36,10 +36,20 @@ getMerkleProof leaf siblings indices = do
 
 getMerkleProof' :: Int -> Comp Field
 getMerkleProof' depth = do
-  leaf <- inputField
-  siblings <- inputList2 depth 5
-  indices <- inputList depth
+  leaf <- inputField Private
+  siblings <- inputList2 Private depth 5
+  indices <- inputList Private depth
   getMerkleProof leaf siblings indices
+
+getMerkleProofA :: Int -> Comp Field
+getMerkleProofA depth = do
+  leaf     <- inputField Private
+  siblings <- inputList2 Private depth 2
+  indices  <- inputList Private depth :: Comp [Field]
+  foldlM
+    (\_digest (_i, p) -> hash p >>= reuse)
+    leaf
+    (zip indices siblings)
 
 choose :: [Field] -> Field -> Field
 choose [] _ = 0
@@ -59,7 +69,7 @@ type Path = [TaggedPair Field]
 
 dfs :: MerkleTree -> Comp (Maybe Path)
 dfs tree = do
-  leaf <- inputField
+  leaf <- inputField Private
   return $ dfs' tree leaf
   where
     dfs' :: MerkleTree -> Field -> Maybe Path

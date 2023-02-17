@@ -25,10 +25,10 @@ semaphore identityNullifier identityTrapdoor siblings indices signalHash externa
 -- Check two things: the signal is valid (cast by someone in a group), and it is not double signaling
 checkSignal :: Int -> Field -> [Field] -> Field -> Field -> Comp ()
 checkSignal depth root nullifierMap signalHash externalNullifier = do
-  identityNullifier <- inputField
-  identityTrapdoor <- inputField
-  siblings <- inputList2 depth 5
-  indices <- inputList depth
+  identityNullifier <- inputField Private
+  identityTrapdoor <- inputField Private
+  siblings <- inputList2 Private depth 5
+  indices <- inputList Private depth
 
   -- check the commitment is in the tree
   (root', nullifierHash) <- semaphore identityNullifier identityTrapdoor siblings indices signalHash externalNullifier

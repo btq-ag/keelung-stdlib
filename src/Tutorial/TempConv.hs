@@ -11,20 +11,20 @@ import Keelung
 -- | Convert a temperature from Celsius to Fahrenheit.
 celsiusToFahrenheit :: Comp Field
 celsiusToFahrenheit = do
-  degree <- input
+  degree <- input Private
   return (degree * 9 / 5 + 32)
 
 -- | Convert a temperature from Fahrenheit to Celsius.
 fahrenheitToCelsius :: Comp Field
 fahrenheitToCelsius = do
-  degree <- input
+  degree <- input Private
   return ((degree - 32) * 5 / 9)
 
 -- | Convert a temperature from Celsius to Kelvin or Fahrenheit to Kelvin.
 dualConvert :: Comp Field
 dualConvert = do
-  toCelsius <- input
-  degree <- input
+  toCelsius <- input Private
+  degree <- input Private
   return
     ( cond
         toCelsius

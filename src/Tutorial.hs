@@ -9,7 +9,17 @@ module Tutorial where
 import Control.Monad
 -- import qualified Hash.BLAKE2b as BLAKE2b
 -- import qualified Hash.BLAKE2sM as BLAKE2sM
-import Keelung
+import Keelung hiding (input, inputField, inputBool, inputUInt, inputList)
+import qualified Keelung
+
+input :: (Proper t) => Comp t
+input = Keelung.input Private
+inputField :: Comp Field
+inputField = Keelung.inputField Private
+inputBool :: Comp Boolean
+inputBool = Keelung.inputBool Private
+inputList :: (Proper t) => Int -> Comp [t]
+inputList = Keelung.inputList Private
 
 -- | Outputs whether number is given.
 echo :: Comp Field

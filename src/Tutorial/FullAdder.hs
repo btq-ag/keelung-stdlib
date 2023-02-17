@@ -20,6 +20,6 @@ fullAdder as bs =
 -- | "T" for top-level
 fullAdderT :: Int -> Comp [Boolean]
 fullAdderT width = do
-  xs <- inputList width
-  ys <- inputList width
+  xs <- inputList Private width
+  ys <- inputList Private width
   return $ fullAdder xs ys
