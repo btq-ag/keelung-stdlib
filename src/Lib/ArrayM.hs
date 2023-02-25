@@ -224,6 +224,6 @@ group n l
 -- | "T" for top-level
 fullAdderT :: Int -> Comp (ArrM Boolean)
 fullAdderT width = do
-  xs <- inputList width >>= thaw
-  ys <- inputList width >>= thaw
+  xs <- inputList Private width >>= thaw
+  ys <- inputList Private width >>= thaw
   fullAdder xs ys

@@ -5,7 +5,7 @@
 {-# HLINT ignore "Use head" #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
-module Hash.BLAKE2b () where
+module WIP.BLAKE2b () where
 
 -- import Control.Monad
 -- import qualified Crypto.Hash.BLAKE2.BLAKE2b
