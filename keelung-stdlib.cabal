@@ -6,22 +6,21 @@ cabal-version: 1.12
 
 name:           keelung-stdlib
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/keelung-stdlib#readme>
-homepage:       https://github.com/githubuser/keelung-stdlib#readme
-bug-reports:    https://github.com/githubuser/keelung-stdlib/issues
-author:         Ting-GIan LUA
-maintainer:     ty.lai@btq.li
-copyright:      2022 BTQ AG
-license:        BSD3
+description:    Please see the README on GitHub at <https://github.com/btq-ag/keelung-stdlib#readme>
+homepage:       https://github.com/btq-ag/keelung-stdlib#readme
+bug-reports:    https://github.com/btq-ag/keelung-stdlib/issues
+author:         BTQ AG
+maintainer:     BTQ AG
+copyright:      2022-2023 BTQ AG
+license:        Apache-2.0
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
-    ChangeLog.md
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/keelung-stdlib
+  location: https://github.com/btq-ag/keelung-stdlib
 
 flag profile
   description: Generate executables that are for profiling only
