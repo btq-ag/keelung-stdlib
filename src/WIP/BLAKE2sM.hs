@@ -1,4 +1,4 @@
-module Hash.BLAKE2sM () where
+module WIP.BLAKE2sM () where
 -- import qualified Lib.W32M as W32M
 -- import Lib.W32M (W32M)
 -- import Keelung

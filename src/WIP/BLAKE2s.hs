@@ -1,4 +1,4 @@
-module Hash.BLAKE2s where
+module WIP.BLAKE2s where
 
 -- import Control.Monad
 -- import Data.Function ((&))
