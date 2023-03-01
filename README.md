@@ -1,9 +1,11 @@
-# Keelung standard library
+# Keelung Standard Library
 
 ## How to build the library:
+
 ```bash
 stack build
 ```
+
 <!-- 
 ## How to profile Keelung programs
 
