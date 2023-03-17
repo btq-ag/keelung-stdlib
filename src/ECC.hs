@@ -12,11 +12,9 @@ newtype Point = Point (EC, Field, Field)
 
 instance Reusable Point where
   reuse (Point ((a, b), x, y)) = do
-    a' <- reuse a
-    b' <- reuse b
     x' <- reuse x
     y' <- reuse y
-    return $ Point ((a', b'), x', y')
+    return $ Point ((a, b), x', y')
 
 instance Cmp Point where
   eq (Point (_, x0, y0)) (Point (_, x1, y1)) = (x0 `eq` x1) .&. (y0 `eq` y1)
@@ -81,16 +79,11 @@ smultVar n (Point ((a, b), x, y)) = do
   where
     times :: Point -> UInt 30 -> Comp Point
     times point@(Point (ec, _, _)) s = do
-      let bits = map (s !!!) (reverse [0 .. 29])
-      let func p bit = do
+      let bitsrev = reverse $ map (s !!!) [0 .. widthOf s - 1]
+      let f p bit = do
             p2 <- reuse (add p p)
-            reuse $
-              condPoint
-                bit
-                (add p2 point)
-                p2
-
-      foldM func (Point (ec, 0, 0)) bits
+            reuse $ condPoint bit (add p2 point) p2
+      foldM f (Point (ec, 0, 0)) bitsrev
 
 -----
 
