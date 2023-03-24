@@ -5,8 +5,10 @@ module ECCTiny where
 import Control.Monad (foldM)
 import Keelung
 
--- choice of bit width: 2833^3 < 2^35 so that x^3+ax+b won't overflow
-type F = UInt 35
+-- Choice of bit width:
+-- In current implementation, the number can be largest when calculating slopeDbl.
+-- slopeDbl < (p*p*3+a)*p < 2^36
+type F = UInt 36
 
 p, a, b :: F
 p = 2833
@@ -108,3 +110,9 @@ add' = do
   y <- input Public
   Point (x', y') <- add (Point (x, y)) (Point (x, y))
   return (x', y')
+
+testScalarMult0 :: Comp ()
+testScalarMult0 = do
+  (x', y') <- smult 123456 (Point (1341, 854))
+  assert $ x' `eq` 1341
+  assert $ y' `eq` 854
