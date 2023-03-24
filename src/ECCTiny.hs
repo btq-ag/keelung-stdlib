@@ -45,8 +45,8 @@ instance Cmp Point where
 
 onCurve :: Point -> Comp Boolean
 onCurve (Point (x, y)) = do
-  (_, r0) <- performDivMod (y * y) p
-  (_, r1) <- performDivMod ((x * x * x) + (x * a) + b) p
+  r0 <- modP $ y * y
+  r1 <- modP $ (x * x * x) + (x * a) + b
   return $ (r0 `eq` r1) .|. (x `eq` 0 .&. y `eq` 0)
 
 smult' :: Int -> Comp (F, F)
@@ -76,8 +76,13 @@ condPoint c (Point (x0, y0)) (Point (x1, y1)) =
 condPointM :: Boolean -> Point -> Comp Point -> Comp Point
 condPointM c p0 p1 = condPoint c p0 <$> p1
 
-handleSpecialCases :: Point -> Point -> Comp Point -> Comp Point
-handleSpecialCases p0@(Point (x0, y0)) p1@(Point (x1, y1)) fallover =
+-- Comparisons can be solely dependent on the x-coordinate if we exercise caution.
+-- By ensuring that the scalar value is greater than zero and less than the order of E,
+-- we can eliminate all edge cases. (It may require range proofs.)
+-- By "caution" I mean that constraints must be appropriate enough so that adversaries
+-- won't be able to generate fake proofs by exploiting under-constrained programs.
+handleCornerCases :: Point -> Point -> Comp Point -> Comp Point
+handleCornerCases p0@(Point (x0, y0)) p1@(Point (x1, y1)) fallover =
   condPointM (p0 `eq` zero) p1 $
     condPointM (p1 `eq` zero) p0 $
       condPointM
@@ -88,13 +93,14 @@ handleSpecialCases p0@(Point (x0, y0)) p1@(Point (x1, y1)) fallover =
     zero = Point (0, 0)
 
 add :: Point -> Point -> Comp Point
-add p0@(Point (x0, y0)) p1@(Point (x1, y1)) = handleSpecialCases p0 p1 $ do
-  slopeDbl <- ((x0 * x0 * 3 + a) *) <$> inverse (y0 + y0)
-  slopeAdd <- ((p + y1 - y0) *) <$> inverse (p + x1 - x0)
-  slope <- modP $ cond (p0 `eq` p1) slopeDbl slopeAdd
-  x2 <- modP $ slope * slope + 2 * p - (x0 + x1)
-  y2 <- modP $ (x0 + p - x2) * slope - y0
-  return (Point (x2, y2))
+add p0@(Point (x0, y0)) p1@(Point (x1, y1)) =
+  handleCornerCases p0 p1 $ do
+    slopeDbl <- (* (x0 * x0 * 3 + a)) <$> inverse (y0 + y0)
+    slopeAdd <- (* (p + y1 - y0)) <$> inverse (p + x1 - x0)
+    slope <- modP $ cond (p0 `eq` p1) slopeDbl slopeAdd
+    x2 <- modP $ slope * slope + 2 * p - (x0 + x1)
+    y2 <- modP $ (x0 + p - x2) * slope - y0
+    return (Point (x2, y2))
 
 add' :: Comp (F, F)
 add' = do
