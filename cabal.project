@@ -5,4 +5,9 @@ source-repository-package
     location: https://github.com/btq-ag/galois-field.git
     tag: d7d0da6b5df8045afdfb820ba8d08f34dc4c3e58
 
+source-repository-package
+    type: git
+    location: https://github.com/btq-ag/keelung.git
+    tag: 185c611c72de2e6caccd9dad7d83209327c06e8b
+
 with-compiler: ghc-9.2.5
