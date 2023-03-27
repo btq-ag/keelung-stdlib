@@ -10,22 +10,22 @@ import Keelung
 -- slopeDbl < (p*p*3+a)*p < 2^36
 type F = UInt 36
 
-p, a, b :: F
-p = 2833
-a = 1
-b = 1
+_p, _a, _b :: F
+_p = 2833
+_a = 1
+_b = 1
 
 -- | Performs eager modulo operation with respect to p.
 -- It is important to be mindful of potential overflows (exceeding the bit-width) and underflows (during subtraction),
 -- and to perform modular reductions in a timely manner.
 modP :: F -> Comp F
-modP n = snd <$> performDivMod n p
+modP n = snd <$> performDivMod n _p
 
 -- | Find a^-1 mod p with Fermat's Little Theorem. Use eager reduction.
 inverse :: F -> Comp F
 inverse num = foldM f 1 pm2_bitsrev
   where
-    pm2_bitsrev = reverse $ map ((p - 2) !!!) [0 .. widthOf p - 1]
+    pm2_bitsrev = reverse $ map ((_p - 2) !!!) [0 .. widthOf _p - 1]
     f n bit = do
       r <- modP (n * n)
       r' <- modP (r * num)
@@ -48,7 +48,7 @@ instance Cmp Point where
 onCurve :: Point -> Comp Boolean
 onCurve (Point (x, y)) = do
   r0 <- modP $ y * y
-  r1 <- modP $ (x * x * x) + (x * a) + b
+  r1 <- modP $ (x * x * x) + (x * _a) + _b
   return $ (r0 `eq` r1) .|. (x `eq` 0 .&. y `eq` 0)
 
 smult' :: Int -> Comp (F, F)
@@ -88,7 +88,7 @@ handleCornerCases p0@(Point (x0, y0)) p1@(Point (x1, y1)) fallover =
   condPointM (p0 `eq` zero) p1 $
     condPointM (p1 `eq` zero) p0 $
       condPointM
-        ((x0 `eq` x1) .&. (((y0 + y1) `eq` 0) .|. ((y0 + y1) `eq` p)))
+        ((x0 `eq` x1) .&. (((y0 + y1) `eq` 0) .|. ((y0 + y1) `eq` _p)))
         zero
         fallover
   where
@@ -97,11 +97,11 @@ handleCornerCases p0@(Point (x0, y0)) p1@(Point (x1, y1)) fallover =
 add :: Point -> Point -> Comp Point
 add p0@(Point (x0, y0)) p1@(Point (x1, y1)) =
   handleCornerCases p0 p1 $ do
-    slopeDbl <- (* (x0 * x0 * 3 + a)) <$> inverse (y0 + y0)
-    slopeAdd <- (* (p + y1 - y0)) <$> inverse (p + x1 - x0)
+    slopeDbl <- (* (x0 * x0 * 3 + _a)) <$> inverse (y0 + y0)
+    slopeAdd <- (* (_p + y1 - y0)) <$> inverse (_p + x1 - x0)
     slope <- modP $ cond (p0 `eq` p1) slopeDbl slopeAdd
-    x2 <- modP $ slope * slope + 2 * p - (x0 + x1)
-    y2 <- modP $ (x0 + p - x2) * slope - y0
+    x2 <- modP $ slope * slope + 2 * _p - (x0 + x1)
+    y2 <- modP $ (x0 + _p - x2) * slope - y0
     return (Point (x2, y2))
 
 add' :: Comp (F, F)
@@ -114,5 +114,5 @@ add' = do
 testScalarMult0 :: Comp ()
 testScalarMult0 = do
   (x', y') <- smult 123456 (Point (1341, 854))
-  assert $ x' `eq` 1341
-  assert $ y' `eq` 854
+  assert $ x' `eq` 2560
+  assert $ y' `eq` 380
