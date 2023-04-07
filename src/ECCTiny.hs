@@ -2,8 +2,8 @@
 
 module ECCTiny where
 
-import Control.Monad (foldM)
-import Keelung
+import Control.Monad (foldM, forM_)
+import Keelung hiding (verify)
 
 -- Choice of bit width:
 -- In current implementation, the number can be largest when calculating slopeDbl.
@@ -11,16 +11,17 @@ import Keelung
 type F = UInt 36
 
 -- The programmer is responsible for ensuring that the following parameters constitute a valid ECDSA parameter.
-__p :: Integer
+__p, __n :: Integer
 __p = 2833
+__n = 131 -- Order of g
 
 _p, _a, _b, _n :: F
-_g :: (F, F)
+_g :: Point
 _p = UInt __p
 _a = 1
 _b = 1
-_g = (1341, 854) -- Generator
-_n = 131         -- Order of g
+_g = Point (1341, 854) -- Generator
+_n = UInt __n
 
 -- | Performs eager modulo operation with respect to p.
 -- It is important to be mindful of potential overflows (exceeding the bit-width) and underflows (during subtraction),
@@ -28,8 +29,14 @@ _n = 131         -- Order of g
 modP :: F -> Comp F
 modP n = snd <$> performDivMod n _p
 
+modN :: F -> Comp F
+modN n = snd <$> performDivMod n _n
+
 inverse :: F -> F
 inverse n = modInv n __p
+
+inverseN :: F -> F
+inverseN n = modInv n __n
 
 -- | Find a^-1 mod p with Fermat's Little Theorem. Use eager reduction.
 inverseFermat :: F -> Comp F
@@ -120,11 +127,10 @@ add p0@(Point (x0, y0)) p1@(Point (x1, y1)) =
     y2 <- modP $ (x0 + _p - x2) * slope - y0
     return (Point (x2, y2))
 
-smultVar :: F -> Point -> Comp (F, F)
+smultVar :: F -> Point -> Comp Point
 smultVar n p = do
   assert =<< onCurve p
-  Point p' <- p `times` n
-  return p'
+  p `times` n
   where
     times :: Point -> F -> Comp Point
     times point@(Point (_, _)) s = do
@@ -134,6 +140,23 @@ smultVar n p = do
             reuse =<< condPointM (complement bit) p2 (add p2 point)
       foldM f (Point (0, 0)) bitsrev
 
+-- The steps follow [https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm]
+-- expect that message hash is provided modulo n.
+verify :: Point -> F -> F -> F -> Comp ()
+verify pk r s msg_hash = do
+  assert $ pk `neq` zero
+  assert =<< onCurve pk
+  -- TODO: verify r and s are in [1, n-1] (requires range proof!)
+  -- TODO: verify msg_hash is in [0, n-1]
+  let s_inv = inverseN s
+  p1 <- smultVar (msg_hash * s_inv) _g
+  p2 <- smultVar (r * s_inv) pk
+  p@(Point (x, _)) <- add p1 p2
+  assert $ p `neq` zero
+  assert . eq r =<< modN x
+  where
+    zero = Point (0, 0)
+
 testScalarMult0 :: Comp ()
 testScalarMult0 = do
   (x', y') <- smult 123456 (Point (1341, 854))
@@ -142,6 +165,18 @@ testScalarMult0 = do
 
 testScalarMult1 :: Comp ()
 testScalarMult1 = do
-  (x', y') <- smultVar 123456 (Point (1341, 854))
+  Point (x', y') <- smultVar 123456 (Point (1341, 854))
   assert $ x' `eq` 2560
   assert $ y' `eq` 380
+
+testVerify0 :: Comp ()
+testVerify0 = do
+  verify (Point (2745,145)) 31 84 94
+
+testVerify1 :: Comp ()
+testVerify1 = do
+  forM_ tests uncurriedVerify
+  where
+    pk = Point (2564, 2656)
+    tests = [(125, 47, 113), (31, 127, 6), (31, 18, 20), (76, 62, 47), (81, 49, 101), (43, 121, 8), (74, 77, 32), (112, 87, 49), (93, 28, 28), (2, 40, 88), (71, 17, 107), (33, 4, 4), (78, 45, 104), (82, 23, 89), (120, 51, 116), (54, 17, 63), (112, 92, 123), (40, 80, 51), (40, 24, 70), (125, 42, 100), (33, 2, 58), (93, 120, 88), (6, 120, 97), (12, 26, 77), (110, 42, 94), (65, 79, 47), (11, 56, 111), (86, 116, 50), (75, 48, 44), (106, 119, 129)]
+    uncurriedVerify (x, y, z) = verify pk x y z
