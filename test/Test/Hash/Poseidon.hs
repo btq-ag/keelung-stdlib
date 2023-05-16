@@ -1,7 +1,7 @@
 module Test.Hash.Poseidon where
 
 import qualified Hash.Poseidon as Poseidon
-import Keelung (BN128, N (N), bn128, toArray)
+import Keelung (BN128, N (N), bn128)
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -24,6 +24,6 @@ tests =
   where
     run :: [BN128] -> [BN128] -> Assertion
     run inputs expected = do
-      let inputs' = toArray $ map fromIntegral inputs
-      actual <- bn128 (Poseidon.hash inputs') []
+      let inputs' = map fromIntegral inputs
+      actual <- bn128 (Poseidon.hash inputs') [] []
       actual @?= map N expected

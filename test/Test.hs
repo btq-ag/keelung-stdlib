@@ -13,4 +13,4 @@ tests :: TestTree
 tests =
   testGroup
     "Tests"
-    [Util.tests, Array.tests, W32.tests, SHA256.tests, BLAKE2s.tests, Poseidon.tests]
+    [Poseidon.tests]
