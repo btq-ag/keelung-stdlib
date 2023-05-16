@@ -58,7 +58,10 @@ m = 'My Message'
 [r, s] = ecdsa_sign(d, m)
 result = ecdsa_verify(Q, m, r, s)
 
+msg_hash = Fn(hashit(m))
+
 print (f"Message: {m}")
+print (f"Message hash : {msg_hash}")
 print (f"Public Key: {Q.xy()}")
 print (f"Private Key: {d}")
 
@@ -66,3 +69,16 @@ print ("=== Signature ===")
 print (f" r = {r}")
 print (f" s = {s}")
 print (f"Verification: {result}")
+
+from random import randbytes
+
+v = []
+
+for i in range(30):
+  m = str(randbytes(4))
+  [r, s] = ecdsa_sign(d, m)
+  result = ecdsa_verify(Q, m, r, s)
+
+  msg_hash = Fn(hashit(m))
+  v.append((r,s,msg_hash))
+print(v)

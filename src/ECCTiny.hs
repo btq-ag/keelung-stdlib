@@ -58,9 +58,9 @@ instance Reusable Point where
     y' <- reuse y
     return $ Point (x', y')
 
-instance Cmp Point where
-  eq (Point (x0, y0)) (Point (x1, y1)) = (x0 `eq` x1) .&. (y0 `eq` y1)
-  neq x y = Not (x `eq` y)
+eqP, neqP :: Point -> Point -> Boolean
+eqP (Point (x0, y0)) (Point (x1, y1)) = (x0 `eq` x1) .&. (y0 `eq` y1)
+neqP x y = Not (x `eqP` y)
 
 onCurve :: Point -> Comp Boolean
 onCurve (Point (x, y)) = do
@@ -102,8 +102,8 @@ condPointM c p0 p1 = condPoint c p0 <$> p1
 -- won't be able to generate fake proofs by exploiting under-constrained programs.
 handleCornerCases :: Point -> Point -> Comp Point -> Comp Point
 handleCornerCases p0@(Point (x0, y0)) p1@(Point (x1, y1)) fallover =
-  condPointM (p0 `eq` zero) p1 $
-    condPointM (p1 `eq` zero) p0 $
+  condPointM (p0 `eqP` zero) p1 $
+    condPointM (p1 `eqP` zero) p0 $
       condPointM
         ((x0 `eq` x1) .&. (((y0 + y1) `eq` 0) .|. ((y0 + y1) `eq` _p)))
         zero
@@ -122,7 +122,7 @@ add p0@(Point (x0, y0)) p1@(Point (x1, y1)) =
     -- regardless of the truth value of the predicate (during `intrepret` only?)
     let slopeDbl = (x0 * x0 * 3 + _a) * inverseGuarded (y0 + y0)
         slopeAdd = (_p + y1 - y0) * inverseGuarded (_p + x1 - x0)
-    slope <- modP $ cond (p0 `eq` p1) slopeDbl slopeAdd
+    slope <- modP $ cond (p0 `eqP` p1) slopeDbl slopeAdd
     x2 <- modP $ slope * slope + 2 * _p - (x0 + x1)
     y2 <- modP $ (x0 + _p - x2) * slope - y0
     return (Point (x2, y2))
@@ -144,7 +144,7 @@ smultVar n p = do
 -- expect that message hash is provided modulo n.
 verify :: Point -> F -> F -> F -> Comp ()
 verify pk r s msg_hash = do
-  assert $ pk `neq` zero
+  assert $ pk `neqP` zero
   assert =<< onCurve pk
   -- TODO: verify r and s are in [1, n-1] (requires range proof!)
   -- TODO: verify msg_hash is in [0, n-1]
@@ -152,7 +152,7 @@ verify pk r s msg_hash = do
   p1 <- smultVar (msg_hash * s_inv) _g
   p2 <- smultVar (r * s_inv) pk
   p@(Point (x, _)) <- add p1 p2
-  assert $ p `neq` zero
+  assert $ p `neqP` zero
   assert . eq r =<< modN x
   where
     zero = Point (0, 0)

@@ -16,9 +16,9 @@ instance Reusable Point where
     y' <- reuse y
     return $ Point ((a, b), x', y')
 
-instance Cmp Point where
-  eq (Point (_, x0, y0)) (Point (_, x1, y1)) = (x0 `eq` x1) .&. (y0 `eq` y1)
-  neq x y = Not (x `eq` y)
+eqP, neqP :: Point -> Point -> Boolean
+eqP (Point (_, x0, y0)) (Point (_, x1, y1)) = (x0 `eq` x1) .&. (y0 `eq` y1)
+neqP x y = Not (x `eqP` y)
 
 smult' :: Int -> Comp (Field, Field)
 smult' n = do
@@ -48,15 +48,15 @@ condPoint b (Point (ec, x0, y0)) (Point (_, x1, y1)) =
 
 add :: Point -> Point -> Point
 add p0@(Point (ec@(a, _), x0, y0)) p1@(Point (_, x1, y1)) =
-  condPoint (p0 `eq` zero) p1 $ -- if p0 = O, return p1
-    condPoint (p1 `eq` zero) p0 $ -- if p1 = O, return p0
+  condPoint (p0 `eqP` zero) p1 $ -- if p0 = O, return p1
+    condPoint (p1 `eqP` zero) p0 $ -- if p1 = O, return p0
       condPoint
         ((x0 `eq` x1) .&. (y0 `eq` negate y1)) -- if x0 = x1 and y0 = −y1, return O
         zero
         (Point (ec, x2, y2))
   where
     zero = Point (ec, 0, 0)
-    slope = cond (p0 `eq` p1) ((x0 * x0 * 3 + a) / (y0 + y0)) ((y1 - y0) / (x1 - x0))
+    slope = cond (p0 `eqP` p1) ((x0 * x0 * 3 + a) / (y0 + y0)) ((y1 - y0) / (x1 - x0))
     x2 = slope * slope - (x0 + x1)
     y2 = (x0 - x2) * slope - y0
 
