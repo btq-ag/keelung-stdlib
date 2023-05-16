@@ -146,8 +146,11 @@ verify :: Point -> F -> F -> F -> Comp ()
 verify pk r s msg_hash = do
   assert $ pk `neqP` zero
   assert =<< onCurve pk
-  -- TODO: verify r and s are in [1, n-1] (requires range proof!)
-  -- TODO: verify msg_hash is in [0, n-1]
+  -- verify r and s are in [1, n-1] (requires range proof!)
+  assert $ (r `neq` 0) .&. (r `lt` _n)
+  assert $ (s `neq` 0) .&. (s `lt` _n)
+  -- verify msg_hash is in [0, n-1]
+  assert $ msg_hash `lt` _n
   let s_inv = inverseN s
   p1 <- smultVar (msg_hash * s_inv) _g
   p2 <- smultVar (r * s_inv) pk
