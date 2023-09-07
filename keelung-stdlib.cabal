@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.1.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -29,6 +29,9 @@ flag profile
 
 library
   exposed-modules:
+      Big256
+      ECC
+      ECCTiny
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
@@ -61,6 +64,9 @@ library
 
 executable profile
   other-modules:
+      Big256
+      ECC
+      ECCTiny
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
@@ -103,6 +109,9 @@ test-suite keelung-stdlib-test
   type: exitcode-stdio-1.0
   main-is: Test.hs
   other-modules:
+      Big256
+      ECC
+      ECCTiny
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
