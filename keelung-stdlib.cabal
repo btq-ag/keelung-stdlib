@@ -29,7 +29,9 @@ flag profile
 
 library
   exposed-modules:
+      Big256
       ECC
+      ECCTiny
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
@@ -62,7 +64,9 @@ library
 
 executable profile
   other-modules:
+      Big256
       ECC
+      ECCTiny
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
@@ -105,7 +109,9 @@ test-suite keelung-stdlib-test
   type: exitcode-stdio-1.0
   main-is: Test.hs
   other-modules:
+      Big256
       ECC
+      ECCTiny
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
