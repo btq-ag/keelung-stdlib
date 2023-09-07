@@ -1,6 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 
-module ECC where
+module WIP.ECC where
 
 import Control.Monad (foldM)
 import Keelung

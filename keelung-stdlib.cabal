@@ -29,9 +29,7 @@ flag profile
 
 library
   exposed-modules:
-      Big256
-      ECC
-      ECCTiny
+      Cipher.AES
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
@@ -43,6 +41,8 @@ library
       WIP.BLAKE2b
       WIP.BLAKE2s
       WIP.BLAKE2sM
+      WIP.ECC
+      WIP.ECCTiny
   other-modules:
       Paths_keelung_stdlib
   hs-source-dirs:
@@ -64,9 +64,7 @@ library
 
 executable profile
   other-modules:
-      Big256
-      ECC
-      ECCTiny
+      Cipher.AES
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
@@ -78,6 +76,8 @@ executable profile
       WIP.BLAKE2b
       WIP.BLAKE2s
       WIP.BLAKE2sM
+      WIP.ECC
+      WIP.ECCTiny
       Profiling.Hash
       Profiling.MerkleProof
       Paths_keelung_stdlib
@@ -109,9 +109,7 @@ test-suite keelung-stdlib-test
   type: exitcode-stdio-1.0
   main-is: Test.hs
   other-modules:
-      Big256
-      ECC
-      ECCTiny
+      Cipher.AES
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
@@ -123,6 +121,8 @@ test-suite keelung-stdlib-test
       WIP.BLAKE2b
       WIP.BLAKE2s
       WIP.BLAKE2sM
+      WIP.ECC
+      WIP.ECCTiny
       Test.BLAKE2s
       Test.Hash.Poseidon
       Test.Lib.Array

@@ -1,6 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 
-module ECCTiny where
+module WIP.ECCTiny where
 
 import Control.Monad (foldM, forM_)
 import Keelung hiding (verify)
