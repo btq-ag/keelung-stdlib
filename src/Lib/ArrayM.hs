@@ -34,7 +34,7 @@ module Lib.ArrayM
 where
 
 import Control.Monad
-import Keelung hiding (rotate, shift, shiftL, shiftR)
+import Keelung hiding (rotate, rotateL, rotateR, shift, shiftL, shiftR)
 import Numeric.Natural
 
 -- | See if 2 bit arrays of length `width` are equal.
