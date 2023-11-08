@@ -1,7 +1,7 @@
 module Test.Hash.Poseidon where
 
-import qualified Hash.Poseidon as Poseidon
-import Keelung (BN128, N (N), bn128)
+import Hash.Poseidon qualified as Poseidon
+import Keelung
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -22,8 +22,7 @@ tests =
       testCase "11" $ run [3, 4, 0, 0, 0, 0] [12263118664590987767234828103155242843640892839966517009184493198782366909018]
     ]
   where
-    run :: [BN128] -> [BN128] -> Assertion
+    run :: [Integer] -> [Integer] -> Assertion
     run inputs expected = do
-      let inputs' = map fromIntegral inputs
-      actual <- bn128 (Poseidon.hash inputs') [] []
-      actual @?= map N expected
+      actual <- interpret bn128 (Poseidon.hash (map fromInteger inputs)) [] []
+      actual @?= expected
