@@ -6,6 +6,8 @@ import Keelung
 
 type Byte = UInt 8
 
+type WordBlock = (Field, Field, Field, Field)
+
 -- references
 -- https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197-upd1.pdf
 -- https://opensource.apple.com/source/CommonCrypto/CommonCrypto-55010/Source/AESedp/AES.c.auto.html
@@ -25,7 +27,7 @@ nr = 10
 -- | KeyExpansion – round keys are derived from the cipher key using the AES key schedule.
 --   AES requires a separate 128-bit round key block for each round plus one more.
 -- expandKey = undefined
-mixColumns :: (Field, Field, Field, Field) -> (Field, Field, Field, Field) -> (Field, Field, Field, Field)
+mixColumns :: WordBlock -> WordBlock -> WordBlock
 mixColumns (a0, a1, a2, a3) (b0, b1, b2, b3) = (d0, d1, d2, d3)
   where
     d0 = a0 * b0 + a3 * b1 + a2 * b2 + a1 * b3
@@ -33,10 +35,24 @@ mixColumns (a0, a1, a2, a3) (b0, b1, b2, b3) = (d0, d1, d2, d3)
     d2 = a2 * b0 + a1 * b1 + a0 * b2 + a3 * b3
     d3 = a3 * b0 + a2 * b1 + a1 * b2 + a0 * b3
 
--- | SubFields: applies a substitution table (S-box) to each byte
--- sBox :: Field -> Field
--- sBox 0x00 = 0x63
--- sBox 0x01 = 0x7c
+-- | subBytes: applies a substitution table (S-box) to each byte
+subBytes :: (WordBlock, WordBlock, WordBlock, WordBlock) -> Comp (WordBlock, WordBlock, WordBlock, WordBlock)
+subBytes (a0, a1, a2, a3) = do
+  b0 <- subWordBlock a0
+  b1 <- subWordBlock a1
+  b2 <- subWordBlock a2
+  b3 <- subWordBlock a3
+  return (b0, b1, b2, b3)
+  where
+    subWordBlock :: WordBlock -> Comp WordBlock
+    subWordBlock (x0, x1, x2, x3) = do
+      y0 <- sBox x0
+      y1 <- sBox x1
+      y2 <- sBox x2
+      y3 <- sBox x3
+      return (y0, y1, y2, y3)
+
+-- | SBox
 sBox :: Field -> Comp Field
 sBox b = do
   -- inverse of `b`
@@ -71,6 +87,17 @@ sBox b = do
     set :: (Int, Boolean) -> Byte -> Byte
     set (index, value) byte = setBit byte index value
 
--- testSBox :: Comp Field
--- testSBox = do 
---   input Public >>= sBox
+-- | SBox but implemented in a more "analytical" way
+--      (b * 31 mod 257) + 99
+sBox2 :: Field -> Comp Field
+sBox2 b = do
+  -- inverse of `b`
+  --    if b == 0
+  --        then 0
+  --        else b ^ (-1)
+  let inverse = cond (b `eq` 0) 0 (pow b 254)
+
+  uint <- toUInt 8 (inverse * 31) :: Comp Byte
+  (_, modulo) <- performDivMod uint 257
+  field <- toField modulo
+  return $ field + 99
