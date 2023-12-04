@@ -101,3 +101,41 @@ sBox2 b = do
   (_, modulo) <- performDivMod uint 257
   field <- toField modulo
   return $ field + 99
+
+sBox3 :: Field -> Comp Field
+sBox3 b = do
+  -- inverse of `b`
+  --    if b == 0
+  --        then 0
+  --        else b ^ (-1)
+  let inverse = cond (b `eq` 0) 0 (recip b)
+  -- convert the inverse to Byte so that we can manipulate the bits
+  b' <- toUInt 8 inverse :: Comp Byte
+
+  let b0 = b' !!! 0 .^. b' !!! 4 .^. b' !!! 5 .^. b' !!! 6 .^. b' !!! 7 .^. true
+  let b1 = b' !!! 1 .^. b' !!! 5 .^. b' !!! 6 .^. b' !!! 7 .^. b' !!! 0 .^. true
+  let b2 = b' !!! 2 .^. b' !!! 6 .^. b' !!! 7 .^. b' !!! 0 .^. b' !!! 1 .^. false
+  let b3 = b' !!! 3 .^. b' !!! 7 .^. b' !!! 0 .^. b' !!! 1 .^. b' !!! 2 .^. false
+  let b4 = b' !!! 4 .^. b' !!! 0 .^. b' !!! 1 .^. b' !!! 2 .^. b' !!! 3 .^. false
+  let b5 = b' !!! 5 .^. b' !!! 1 .^. b' !!! 2 .^. b' !!! 3 .^. b' !!! 4 .^. true
+  let b6 = b' !!! 6 .^. b' !!! 2 .^. b' !!! 3 .^. b' !!! 4 .^. b' !!! 5 .^. true
+  let b7 = b' !!! 7 .^. b' !!! 3 .^. b' !!! 4 .^. b' !!! 5 .^. b' !!! 6 .^. false
+
+  result <- pack [b0, b1, b2, b3, b4, b5, b6, b7]
+        -- set (0, b0) $
+        --   set (1, b1) $
+        --     set (2, b2) $
+        --       set (3, b3) $
+        --         set (4, b4) $
+        --           set (5, b5) $
+        --             set (6, b6) $
+        --               set (7, b7) 0
+
+  toField (result :: UInt 8)
+
+
+sBox4 :: Field -> Comp Field
+sBox4 b = do
+  b' <- toUInt 1 b :: Comp (UInt 1)
+  result <- pack [b' !!! 0]
+  toField (result :: UInt 1)
