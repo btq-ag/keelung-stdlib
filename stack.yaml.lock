@@ -16,20 +16,19 @@ packages:
     commit: d7d0da6b5df8045afdfb820ba8d08f34dc4c3e58
     git: https://github.com/btq-ag/galois-field.git
 - completed:
-    commit: 586051cfbf60efabfc4dd402236b15171222bf92
+    commit: 7eefe0f883fd5b595f133ef17b39fd69df737835
     git: https://github.com/btq-ag/keelung.git
     name: keelung
     pantry-tree:
-      sha256: 6dc3caac0543186dc4408e1ed158aa41035b1e2af8c373da19268a893d1ec073
+      sha256: 59ab32e97ac93af5e008d6a509331cee9cd543047ba84b82c58671094022e8cc
       size: 1877
     version: 0.19.0
   original:
-    commit: 586051cfbf60efabfc4dd402236b15171222bf92
+    commit: 7eefe0f883fd5b595f133ef17b39fd69df737835
     git: https://github.com/btq-ag/keelung.git
 snapshots:
 - completed:
-    sha256: 8bcce0b4f5671ea04691477f5af759b497b8892f998768d6eb01c64c58d41d7c
-    size: 649329
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/7.yaml
-  original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/7.yaml
+    sha256: 5a59b2a405b3aba3c00188453be172b85893cab8ebc352b1ef58b0eae5d248a2
+    size: 650475
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/26.yaml
+  original: lts-20.26
