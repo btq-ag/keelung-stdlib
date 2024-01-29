@@ -69,40 +69,41 @@ import Keelung
 --   field <- toField modulo
 --   return $ field + 99
 
--- -- | SBox
--- sBox :: Field -> Comp Field
--- sBox b = do
---   -- inverse of `b`
---   --    if b == 0
---   --        then 0
---   --        else b ^ (-1)
---   let inverse = cond (b `eq` 0) 0 (pow b 254)
---   -- convert the inverse to Byte so that we can manipulate the bits
---   b' <- toUInt 8 inverse :: Comp Byte
+-- | SBox
+sBox :: Byte -> Comp Byte
+sBox b = do
+  -- inverse of `b`
+  --    if b == 0
+  --        then 0
+  --        else b ^ (-1)
+  field <- toField b
+  let inverse = cond (b `eq` 0) 0 (pow field 254)
+  -- convert the inverse to Byte so that we can manipulate the bits
+  b' <- toUInt 8 inverse :: Comp Byte
 
---   let b0 = b' !!! 0 .^. b' !!! 4 .^. b' !!! 5 .^. b' !!! 6 .^. b' !!! 7 .^. true
---   let b1 = b' !!! 1 .^. b' !!! 5 .^. b' !!! 6 .^. b' !!! 7 .^. b' !!! 0 .^. true
---   let b2 = b' !!! 2 .^. b' !!! 6 .^. b' !!! 7 .^. b' !!! 0 .^. b' !!! 1 .^. false
---   let b3 = b' !!! 3 .^. b' !!! 7 .^. b' !!! 0 .^. b' !!! 1 .^. b' !!! 2 .^. false
---   let b4 = b' !!! 4 .^. b' !!! 0 .^. b' !!! 1 .^. b' !!! 2 .^. b' !!! 3 .^. false
---   let b5 = b' !!! 5 .^. b' !!! 1 .^. b' !!! 2 .^. b' !!! 3 .^. b' !!! 4 .^. true
---   let b6 = b' !!! 6 .^. b' !!! 2 .^. b' !!! 3 .^. b' !!! 4 .^. b' !!! 5 .^. true
---   let b7 = b' !!! 7 .^. b' !!! 3 .^. b' !!! 4 .^. b' !!! 5 .^. b' !!! 6 .^. false
+  let b0 = b' !!! 0 .^. b' !!! 4 .^. b' !!! 5 .^. b' !!! 6 .^. b' !!! 7 .^. true
+  let b1 = b' !!! 1 .^. b' !!! 5 .^. b' !!! 6 .^. b' !!! 7 .^. b' !!! 0 .^. true
+  let b2 = b' !!! 2 .^. b' !!! 6 .^. b' !!! 7 .^. b' !!! 0 .^. b' !!! 1 .^. false
+  let b3 = b' !!! 3 .^. b' !!! 7 .^. b' !!! 0 .^. b' !!! 1 .^. b' !!! 2 .^. false
+  let b4 = b' !!! 4 .^. b' !!! 0 .^. b' !!! 1 .^. b' !!! 2 .^. b' !!! 3 .^. false
+  let b5 = b' !!! 5 .^. b' !!! 1 .^. b' !!! 2 .^. b' !!! 3 .^. b' !!! 4 .^. true
+  let b6 = b' !!! 6 .^. b' !!! 2 .^. b' !!! 3 .^. b' !!! 4 .^. b' !!! 5 .^. true
+  let b7 = b' !!! 7 .^. b' !!! 3 .^. b' !!! 4 .^. b' !!! 5 .^. b' !!! 6 .^. false
 
---   let result =
---         set (0, b0) $
---           set (1, b1) $
---             set (2, b2) $
---               set (3, b3) $
---                 set (4, b4) $
---                   set (5, b5) $
---                     set (6, b6) $
---                       set (7, b7) 0
+  let result =
+        set (0, b0) $
+          set (1, b1) $
+            set (2, b2) $
+              set (3, b3) $
+                set (4, b4) $
+                  set (5, b5) $
+                    set (6, b6) $
+                      set (7, b7) 0
 
---   toField result
---   where
---     set :: (Int, Boolean) -> Byte -> Byte
---     set (index, value) byte = setBit byte index value
+  return result
+  where
+    set :: (Int, Boolean) -> Byte -> Byte
+    set (index, value) byte = setBit byte index value
 
 -- | SBox but implemented in a more "analytical" way
 --      (b * 31 mod 257) + 99
@@ -132,8 +133,8 @@ genSBoxRow c x =
 
 -- | SBox, using Table 4 of the AES specification (page 14)
 -- | Choose from the given list of 16 16-bytes list based on the higher 4 bits of the given byte
-sBox :: Byte -> Byte
-sBox x =
+sBoxTabulation :: Byte -> Byte
+sBoxTabulation x =
   cond
     (x !!! 7)
     ( cond
@@ -245,10 +246,10 @@ updateUIntWord w (c0, c1, c2, c3) i = do
 -- | SUBWORD
 subUIntWord :: UIntWord -> Comp UIntWord
 subUIntWord (a0, a1, a2, a3) = do
-  let b0 = sBox a0
-  let b1 = sBox a1
-  let b2 = sBox a2
-  let b3 = sBox a3
+  b0 <- sBox a0
+  b1 <- sBox a1
+  b2 <- sBox a2
+  b3 <- sBox a3
   return (b0, b1, b2, b3)
 
 -- | ROTWORD
