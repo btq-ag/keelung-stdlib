@@ -101,3 +101,17 @@ sBox2 b = do
   (_, modulo) <- performDivMod uint 257
   field <- toField modulo
   return $ field + 99
+
+shiftRows :: (WordBlock, WordBlock, WordBlock, WordBlock) -> (WordBlock, WordBlock, WordBlock, WordBlock)
+shiftRows (r0, r1, r2, r3) = (r0, shiftWordBlock1 r1, shiftWordBlock2 r2, shiftWordBlock3 r3) 
+  where 
+    shiftWordBlock1 :: WordBlock -> WordBlock
+    shiftWordBlock1 (c0, c1, c2, c3) = (c1, c2, c3, c0)
+
+    shiftWordBlock2 :: WordBlock -> WordBlock
+    shiftWordBlock2 (c0, c1, c2, c3) = (c2, c3, c0, c1)
+
+    shiftWordBlock3 :: WordBlock -> WordBlock
+    shiftWordBlock3 (c0, c1, c2, c3) = (c3, c0, c1, c2)
+
+-- mixColumns :: 
