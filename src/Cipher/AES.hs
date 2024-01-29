@@ -7,67 +7,51 @@ module Cipher.AES where
 
 import Cipher.AES.Constant
 import Cipher.AES.Types
-import Control.Monad (forM_)
+import Control.Monad (foldM, forM_)
 import Keelung
+import Prelude hiding (round)
 
 -- references
 -- https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197-upd1.pdf
 -- https://opensource.apple.com/source/CommonCrypto/CommonCrypto-55010/Source/AESedp/AES.c.auto.html
 
--- -- | subBytes: applies a substitution table (S-box) to each byte
--- subBytes :: (WordBlock, WordBlock, WordBlock, WordBlock) -> Comp (WordBlock, WordBlock, WordBlock, WordBlock)
--- subBytes (a0, a1, a2, a3) = do
---   b0 <- subWordBlock a0
---   b1 <- subWordBlock a1
---   b2 <- subWordBlock a2
---   b3 <- subWordBlock a3
---   return (b0, b1, b2, b3)
---   where
---     subWordBlock :: WordBlock -> Comp WordBlock
---     subWordBlock (x0, x1, x2, x3) = do
---       y0 <- sBox x0
---       y1 <- sBox x1
---       y2 <- sBox x2
---       y3 <- sBox x3
---       return (y0, y1, y2, y3)
+-- | subBytes: applies a substitution table (S-box) to each byte
+subBytes :: Tuple UIntWord -> Comp (Tuple UIntWord)
+subBytes (a0, a1, a2, a3) = do
+  b0 <- subFieldWord a0
+  b1 <- subFieldWord a1
+  b2 <- subFieldWord a2
+  b3 <- subFieldWord a3
+  return (b0, b1, b2, b3)
+  where
+    subFieldWord :: UIntWord -> Comp UIntWord
+    subFieldWord (x0, x1, x2, x3) = do
+      y0 <- sBox x0
+      y1 <- sBox x1
+      y2 <- sBox x2
+      y3 <- sBox x3
+      return (y0, y1, y2, y3)
 
--- shiftRows :: (WordBlock, WordBlock, WordBlock, WordBlock) -> (WordBlock, WordBlock, WordBlock, WordBlock)
--- shiftRows (r0, r1, r2, r3) = (r0, shiftWordBlock1 r1, shiftWordBlock2 r2, shiftWordBlock3 r3)
---   where
---     shiftWordBlock1 :: WordBlock -> WordBlock
---     shiftWordBlock1 (c0, c1, c2, c3) = (c1, c2, c3, c0)
+-- | ShiftRows: cyclically shifts the last three rows of the state by different offsets
+shiftRows :: Tuple (Tuple a) -> Tuple (Tuple a)
+shiftRows (c0, c1, c2, c3) =
+  let (s00, s10, s20, s30) = c0
+      (s01, s11, s21, s31) = c1
+      (s02, s12, s22, s32) = c2
+      (s03, s13, s23, s33) = c3
+   in ((s00, s11, s22, s33), (s01, s12, s23, s30), (s02, s13, s20, s31), (s03, s10, s21, s32))
 
---     shiftWordBlock2 :: WordBlock -> WordBlock
---     shiftWordBlock2 (c0, c1, c2, c3) = (c2, c3, c0, c1)
+mixSingleColumn :: FieldWord -> FieldWord
+mixSingleColumn (x0, x1, x2, x3) =
+  ( 0x02 * x0 + 0x03 * x1 + x2 + x3,
+    x0 + 0x02 * x1 + 0x03 * x2 + x3,
+    x0 + x1 + 0x02 * x2 + 0x03 * x3,
+    0x03 * x0 + x1 + x2 + 0x02 * x3
+  )
 
---     shiftWordBlock3 :: WordBlock -> WordBlock
---     shiftWordBlock3 (c0, c1, c2, c3) = (c3, c0, c1, c2)
-
--- -- | KeyExpansion – round keys are derived from the cipher key using the AES key schedule.
--- --   AES requires a separate 128-bit round key block for each round plus one more.
--- -- expandKey = undefined
--- mixColumns :: WordBlock -> WordBlock -> WordBlock
--- mixColumns (a0, a1, a2, a3) (b0, b1, b2, b3) = (d0, d1, d2, d3)
---   where
---     d0 = a0 * b0 + a3 * b1 + a2 * b2 + a1 * b3
---     d1 = a1 * b0 + a0 * b1 + a3 * b2 + a2 * b3
---     d2 = a2 * b0 + a1 * b1 + a0 * b2 + a3 * b3
---     d3 = a3 * b0 + a2 * b1 + a1 * b2 + a0 * b3
-
--- -- | SBox but implemented in a more "analytical" way
--- --      (b * 31 mod 257) + 99
--- sBox2 :: Field -> Comp Field
--- sBox2 b = do
---   -- inverse of `b`
---   --    if b == 0
---   --        then 0
---   --        else b ^ (-1)
---   let inverse = cond (b `eq` 0) 0 (pow b 254)
-
---   uint <- toUInt 8 (inverse * 31) :: Comp Byte
---   (_, modulo) <- performDivMod uint 257
---   field <- toField modulo
---   return $ field + 99
+-- | MixColumns: each column of the state is multiplied with a fixed polynomial
+mixColumns :: Tuple FieldWord -> Tuple FieldWord
+mixColumns (c0, c1, c2, c3) = (mixSingleColumn c0, mixSingleColumn c1, mixSingleColumn c2, mixSingleColumn c3)
 
 -- | SBox
 sBox :: Byte -> Comp Byte
@@ -164,11 +148,11 @@ sBoxTabulation x =
         )
     )
 
--- addRoundKey :: WordBlock -> WordBlock -> WordBlock
+-- addRoundKey :: FieldWord -> FieldWord -> FieldWord
 -- addRoundKey (a0, a1, a2, a3) (b0, b1, b2, b3) = (a0 ^ b0, a1 ^ b1, a2 ^ b2, a3 ^ b3)
 
 -- | KeyExpansion for AES-128
-keyExpansion128 :: (UIntWord, UIntWord, UIntWord, UIntWord) -> Comp [Byte]
+keyExpansion128 :: Tuple UIntWord -> Comp [Byte]
 keyExpansion128 (k0, k1, k2, k3) = do
   -- constants
   let nk = nk128 -- 4
@@ -205,22 +189,20 @@ keyExpansion128 (k0, k1, k2, k3) = do
   freeze w
 
 -- | Convert a FieldWord to a FieldWord
-toUIntWod :: FieldWord -> Comp UIntWord
-toUIntWod (a0, a1, a2, a3) = do
-  a0' <- toUInt 8 a0
-  a1' <- toUInt 8 a1
-  a2' <- toUInt 8 a2
-  a3' <- toUInt 8 a3
-  return (a0', a1', a2', a3')
+toUIntWord :: FieldWord -> Comp UIntWord
+toUIntWord = mapTupleM (toUInt 8)
 
 -- | Convert a UIntWord to a FieldWord
-fromUIntWod :: UIntWord -> Comp FieldWord
-fromUIntWod (a0, a1, a2, a3) = do
-  a0' <- toField a0
-  a1' <- toField a1
-  a2' <- toField a2
-  a3' <- toField a3
-  return (a0', a1', a2', a3')
+fromUIntWord :: UIntWord -> Comp FieldWord
+fromUIntWord = mapTupleM toField
+
+mapTupleM :: (a -> Comp b) -> Tuple a -> Comp (Tuple b)
+mapTupleM f (a0, a1, a2, a3) = do
+  b0 <- f a0
+  b1 <- f a1
+  b2 <- f a2
+  b3 <- f a3
+  return (b0, b1, b2, b3)
 
 -- | XOR on UIntWords
 xorUIntWord :: UIntWord -> UIntWord -> UIntWord
@@ -255,3 +237,38 @@ subUIntWord (a0, a1, a2, a3) = do
 -- | ROTWORD
 rotWord :: UIntWord -> UIntWord
 rotWord (a0, a1, a2, a3) = (a1, a2, a3, a0)
+
+-- | ADDROUNDKEY
+addRoundKey :: [Byte] -> Int -> Tuple UIntWord -> Tuple UIntWord
+addRoundKey w round (c0, c1, c2, c3) =
+  let l = 4 * round
+      keyColumn i = (w !! (l + i), w !! (l + i), w !! (l + i), w !! (l + i))
+   in (c0 `xorUIntWord` keyColumn 0, c1 `xorUIntWord` keyColumn 1, c2 `xorUIntWord` keyColumn 2, c3 `xorUIntWord` keyColumn 3)
+
+-- | AES
+--    input: a tuple of 16 bytes (columns of rows of bytes)
+--    output: a tuple of 16 bytes (columns of rows of bytes)
+cipher128 :: Tuple UIntWord -> Comp (Tuple UIntWord)
+cipher128 plaintext = do
+  let nr = nr128
+  keys <- keyExpansion128 plaintext
+  let state = addRoundKey keys 0 plaintext
+  state' <-
+    foldM
+      ( \st round -> do
+          st' <- subBytes st
+          st'' <- mapTupleM fromUIntWord (shiftRows st')
+          st''' <- mapTupleM toUIntWord (mixColumns st'')
+          return $ addRoundKey keys round st'''
+      )
+      state
+      [1 .. nr - 1]
+  state'' <- subBytes state'
+  let state''' = shiftRows state''
+  return $ addRoundKey keys nr state'''
+
+runCipher128 :: Comp [Byte]
+runCipher128 = do
+  inputs <- inputList Public 16
+  ((output0, output1, output2, output3), (output4, output5, output6, output7), (output8, output9, output10, output11), (output12, output13, output14, output15)) <- cipher128 ((inputs !! 0, inputs !! 1, inputs !! 2, inputs !! 3), (inputs !! 4, inputs !! 5, inputs !! 6, inputs !! 7), (inputs !! 8, inputs !! 9, inputs !! 10, inputs !! 11), (inputs !! 12, inputs !! 13, inputs !! 14, inputs !! 15))
+  return [output0, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, output11, output12, output13, output14, output15]
