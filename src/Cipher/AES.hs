@@ -3,12 +3,15 @@
 
 {-# HLINT ignore "Use head" #-}
 
-module Cipher.AES where
+module Cipher.AES (cipher128, runCipher128) where
 
 import Cipher.AES.Constant
 import Cipher.AES.Types
-import Control.Monad (foldM, forM_)
+import Control.Monad (foldM)
+import Data.Array
 import Keelung
+import Keelung.Constraint.R1CS
+import Keelung.Syntax.Counters
 import Prelude hiding (round)
 
 -- references
@@ -87,7 +90,7 @@ sBox b = do
   return result
   where
     set :: (Int, Boolean) -> Byte -> Byte
-    set (index, value) byte = setBit byte index value
+    set (i, value) byte = setBit byte i value
 
 -- | SBox but implemented in a more "analytical" way
 --      (b * 31 mod 257) + 99
@@ -117,8 +120,8 @@ genSBoxRow c x =
 
 -- | SBox, using Table 4 of the AES specification (page 14)
 -- | Choose from the given list of 16 16-bytes list based on the higher 4 bits of the given byte
-sBoxTabulation :: Byte -> Byte
-sBoxTabulation x =
+_sBoxTabulation :: Byte -> Byte
+_sBoxTabulation x =
   cond
     (x !!! 7)
     ( cond
@@ -148,45 +151,51 @@ sBoxTabulation x =
         )
     )
 
--- addRoundKey :: FieldWord -> FieldWord -> FieldWord
--- addRoundKey (a0, a1, a2, a3) (b0, b1, b2, b3) = (a0 ^ b0, a1 ^ b1, a2 ^ b2, a3 ^ b3)
+updateUIntWord :: Array Int UIntWord -> UIntWord -> Int -> Comp (Array Int UIntWord)
+updateUIntWord arr (c0, c1, c2, c3) i = do
+  c0' <- reuse c0
+  c1' <- reuse c1
+  c2' <- reuse c2
+  c3' <- reuse c3
+  return $ arr // [(i, (c0', c1', c2', c3'))]
 
--- | KeyExpansion for AES-128
-keyExpansion128 :: Tuple UIntWord -> Comp [Byte]
+keyExpansion128 :: Tuple UIntWord -> Comp [UIntWord]
 keyExpansion128 (k0, k1, k2, k3) = do
   -- constants
   let nk = nk128 -- 4
   let nr = nr128 -- 10
-
-  -- create a mutable array of `4 * (nr + 1)` words
-  w <- thaw (replicate (4 * (nr + 1)) (0 :: Byte))
+  -- create a array of `4 * (nr + 1)` words
+  let arr0 = listArray (0, 4 * (nr + 1) - 1) (replicate (4 * (nr + 1)) ((0, 0, 0, 0) :: UIntWord))
   -- the first `Nk` words are the key itself
-  updateUIntWord w k0 0
-  updateUIntWord w k1 1
-  updateUIntWord w k2 2
-  updateUIntWord w k3 3
-
+  arr1 <- updateUIntWord arr0 k0 0
+  arr2 <- updateUIntWord arr1 k1 1
+  arr3 <- updateUIntWord arr2 k2 2
+  arr4 <- updateUIntWord arr3 k3 3
   -- followed by a loop over i from 4 to 43
-  forM_ [4 .. 4 * nr + 3] $ \i -> do
-    temp <- accessUIntWord w (i - 1)
-    temp1 <-
-      if i `mod` nk == 0
-        then do
-          -- temp ← SUBWORD(ROTWORD(temp)) ⊕ Rcon[i/Nk]
-          temp' <- subUIntWord (rotWord temp)
-          return $ temp' `xorUIntWord` (rCon !! (i `div` nk - 1))
-        else
-          if nk > 6 && i `mod` nk == 4
-            then do
-              -- temp ← SUBWORD(temp)
-              subUIntWord temp
-            else do
-              return temp
-    -- w[i] ← w[i−Nk]⊕temp
-    wink <- accessUIntWord w (i - nk)
-    updateUIntWord w (temp1 `xorUIntWord` wink) i
-
-  freeze w
+  arr5 <-
+    foldM
+      ( \arr i -> do
+          let temp = arr ! (i - 1)
+          temp1 <-
+            if i `mod` nk == 0
+              then do
+                -- temp ← SUBWORD(ROTWORD(temp)) ⊕ Rcon[i/Nk]
+                temp' <- subUIntWord (rotWord temp)
+                return $ temp' `xorUIntWord` (rCon !! ((i `div` nk) - 1))
+              else
+                if nk > 6 && i `mod` nk == 4
+                  then do
+                    -- temp ← SUBWORD(temp)
+                    subUIntWord temp
+                  else do
+                    return temp
+          -- w[i] ← w[i−Nk]⊕temp
+          let wink = arr ! (i - nk)
+          updateUIntWord arr (temp1 `xorUIntWord` wink) i
+      )
+      arr4
+      [4 .. 4 * nr + 3]
+  return $ elems arr5
 
 -- | Convert a FieldWord to a FieldWord
 toUIntWord :: FieldWord -> Comp UIntWord
@@ -208,23 +217,6 @@ mapTupleM f (a0, a1, a2, a3) = do
 xorUIntWord :: UIntWord -> UIntWord -> UIntWord
 xorUIntWord (a0, a1, a2, a3) (b0, b1, b2, b3) = (a0 .^. b0, a1 .^. b1, a2 .^. b2, a3 .^. b3)
 
--- | Accessing a UIntWord from the State (array of Bytes)
-accessUIntWord :: ArrM Byte -> Int -> Comp UIntWord
-accessUIntWord w i = do
-  c0 <- accessM w (4 * i)
-  c1 <- accessM w (4 * i + 1)
-  c2 <- accessM w (4 * i + 2)
-  c3 <- accessM w (4 * i + 3)
-  return (c0, c1, c2, c3)
-
--- | Updating a UIntWord in the State (array of Bytes)
-updateUIntWord :: ArrM Byte -> UIntWord -> Int -> Comp ()
-updateUIntWord w (c0, c1, c2, c3) i = do
-  updateM w (4 * i) c0
-  updateM w (4 * i + 1) c1
-  updateM w (4 * i + 2) c2
-  updateM w (4 * i + 3) c3
-
 -- | SUBWORD
 subUIntWord :: UIntWord -> Comp UIntWord
 subUIntWord (a0, a1, a2, a3) = do
@@ -239,11 +231,10 @@ rotWord :: UIntWord -> UIntWord
 rotWord (a0, a1, a2, a3) = (a1, a2, a3, a0)
 
 -- | ADDROUNDKEY
-addRoundKey :: [Byte] -> Int -> Tuple UIntWord -> Tuple UIntWord
+addRoundKey :: [UIntWord] -> Int -> Tuple UIntWord -> Tuple UIntWord
 addRoundKey w round (c0, c1, c2, c3) =
   let l = 4 * round
-      keyColumn i = (w !! (l + i), w !! (l + i), w !! (l + i), w !! (l + i))
-   in (c0 `xorUIntWord` keyColumn 0, c1 `xorUIntWord` keyColumn 1, c2 `xorUIntWord` keyColumn 2, c3 `xorUIntWord` keyColumn 3)
+   in (c0 `xorUIntWord` (w !! l), c1 `xorUIntWord` (w !! (l + 1)), c2 `xorUIntWord` (w !! (l + 2)), c3 `xorUIntWord` (w !! (l + 3)))
 
 -- | AES
 --    input: a tuple of 16 bytes (columns of rows of bytes)
@@ -272,3 +263,10 @@ runCipher128 = do
   inputs <- inputList Public 16
   ((output0, output1, output2, output3), (output4, output5, output6, output7), (output8, output9, output10, output11), (output12, output13, output14, output15)) <- cipher128 ((inputs !! 0, inputs !! 1, inputs !! 2, inputs !! 3), (inputs !! 4, inputs !! 5, inputs !! 6, inputs !! 7), (inputs !! 8, inputs !! 9, inputs !! 10, inputs !! 11), (inputs !! 12, inputs !! 13, inputs !! 14, inputs !! 15))
   return [output0, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, output11, output12, output13, output14, output15]
+
+_compileAndReportNumbers :: (Encode a) => FieldType -> Comp a -> IO (Maybe (Int, Counters))
+_compileAndReportNumbers field program = do
+  result <- compile field program
+  case result of
+    Left _ -> return Nothing
+    Right r1cs -> return $ Just (length (r1csConstraints r1cs), r1csCounters r1cs)
