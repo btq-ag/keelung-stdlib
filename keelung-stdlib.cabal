@@ -30,6 +30,8 @@ flag profile
 library
   exposed-modules:
       Cipher.AES
+      Cipher.AES.Constant
+      Cipher.AES.Types
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
@@ -51,7 +53,8 @@ library
       ImportQualifiedPost
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
     , blake2
     , bytestring
     , directory
@@ -65,6 +68,8 @@ library
 executable profile
   other-modules:
       Cipher.AES
+      Cipher.AES.Constant
+      Cipher.AES.Types
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
@@ -88,7 +93,8 @@ executable profile
       ImportQualifiedPost
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
     , blake2
     , bytestring
     , directory
@@ -110,6 +116,8 @@ test-suite keelung-stdlib-test
   main-is: Test.hs
   other-modules:
       Cipher.AES
+      Cipher.AES.Constant
+      Cipher.AES.Types
       Hash.Poseidon
       Hash.Poseidon.Constant
       Hash.SHA256
@@ -138,6 +146,7 @@ test-suite keelung-stdlib-test
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
   build-depends:
       QuickCheck
+    , array
     , base >=4.7 && <5
     , blake2
     , bytestring

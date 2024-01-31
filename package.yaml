@@ -23,6 +23,7 @@ dependencies:
 - keelung
 - wide-word
 - galois-field
+- array
 - blake2
 - bytestring
 - transformers
