@@ -66,7 +66,7 @@ sBox b = do
   field <- toField b
   let inverse = cond (b `eq` 0) 0 (pow field 254)
   -- convert the inverse to Byte so that we can manipulate the bits
-  b' <- toUInt 8 inverse :: Comp Byte
+  b' <- fromField 8 inverse :: Comp Byte
 
   let b0 = b' !!! 0 .^. b' !!! 4 .^. b' !!! 5 .^. b' !!! 6 .^. b' !!! 7 .^. true
   let b1 = b' !!! 1 .^. b' !!! 5 .^. b' !!! 6 .^. b' !!! 7 .^. b' !!! 0 .^. true
@@ -199,7 +199,7 @@ keyExpansion128 (k0, k1, k2, k3) = do
 
 -- | Convert a FieldWord to a FieldWord
 toUIntWord :: FieldWord -> Comp UIntWord
-toUIntWord = mapTupleM (toUInt 8)
+toUIntWord = mapTupleM (fromField 8)
 
 -- | Convert a UIntWord to a FieldWord
 fromUIntWord :: UIntWord -> Comp FieldWord
