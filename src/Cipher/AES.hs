@@ -77,20 +77,7 @@ sBox b = do
   let b6 = b' !!! 6 .^. b' !!! 2 .^. b' !!! 3 .^. b' !!! 4 .^. b' !!! 5 .^. true
   let b7 = b' !!! 7 .^. b' !!! 3 .^. b' !!! 4 .^. b' !!! 5 .^. b' !!! 6 .^. false
 
-  let result =
-        set (0, b0) $
-          set (1, b1) $
-            set (2, b2) $
-              set (3, b3) $
-                set (4, b4) $
-                  set (5, b5) $
-                    set (6, b6) $
-                      set (7, b7) 0
-
-  return result
-  where
-    set :: (Int, Boolean) -> Byte -> Byte
-    set (i, value) byte = setBit byte i value
+  fromBools [b0, b1, b2, b3, b4, b5, b6, b7]
 
 -- | SBox but implemented in a more "analytical" way
 --      (b * 31 mod 257) + 99
