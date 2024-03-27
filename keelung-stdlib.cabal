@@ -132,6 +132,7 @@ test-suite keelung-stdlib-test
       WIP.ECC
       WIP.ECCTiny
       Test.BLAKE2s
+      Test.Cipher.AES
       Test.Hash.Poseidon
       Test.Lib.Array
       Test.Lib.W32

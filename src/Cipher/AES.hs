@@ -3,7 +3,7 @@
 
 {-# HLINT ignore "Use head" #-}
 
-module Cipher.AES (cipher128, runCipher128) where
+module Cipher.AES (cipher128, runCipher128, pkField, nistField, sBox, sBox2, sBox3) where
 
 import Cipher.AES.Constant
 import Cipher.AES.Types
@@ -11,7 +11,6 @@ import Control.Monad (foldM)
 import Data.Array
 import Keelung
 import Keelung.Constraint.R1CS
-import Keelung.Syntax.Counters
 import Prelude hiding (round)
 
 -- references
@@ -81,62 +80,59 @@ sBox b = do
 
 -- | SBox but implemented in a more "analytical" way
 --      (b * 31 mod 257) + 99
--- sBox3 :: Byte -> Comp Byte
--- sBox3 b = do
---   -- higher 4 bits of b
---   let x = b !!! 4 .^. b !!! 5 .^. b !!! 6 .^. b !!! 7
-
---   (_, modulo) <- performDivMod (b * 31) 257
---   return $ modulo + 99
-
--- | Choose from the given list of 16 bytes based on the lower 4 bits of the given byte
-genSBoxRow :: [Byte] -> Byte -> Byte
-genSBoxRow c x =
-  cond
-    (x !!! 3)
-    ( cond
-        (x !!! 2)
-        (cond (x !!! 1) (cond (x !!! 0) (c !! 15) (c !! 14)) (cond (x !!! 0) (c !! 13) (c !! 12))) -- 0b11__
-        (cond (x !!! 1) (cond (x !!! 0) (c !! 11) (c !! 10)) (cond (x !!! 0) (c !! 9) (c !! 8))) -- 0b10__
-    )
-    ( cond
-        (x !!! 2)
-        (cond (x !!! 1) (cond (x !!! 0) (c !! 7) (c !! 6)) (cond (x !!! 0) (c !! 5) (c !! 4))) -- 0b01__
-        (cond (x !!! 1) (cond (x !!! 0) (c !! 3) (c !! 2)) (cond (x !!! 0) (c !! 1) (c !! 0))) -- 0b00__
-    )
+sBox2 :: Byte -> Comp Byte
+sBox2 b = do
+  (_, modulo) <- performDivMod (b * 31) 257
+  return $ modulo + 99
 
 -- | SBox, using Table 4 of the AES specification (page 14)
 -- | Choose from the given list of 16 16-bytes list based on the higher 4 bits of the given byte
-_sBoxTabulation :: Byte -> Byte
-_sBoxTabulation x =
+sBox3 :: Byte -> Byte
+sBox3 x =
   cond
     (x !!! 7)
     ( cond
         (x !!! 6)
         ( cond
             (x !!! 5)
-            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 15) x) (genSBoxRow (sBoxTable !! 14) x)) -- 0b111_
-            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 13) x) (genSBoxRow (sBoxTable !! 12) x)) -- 0b110_
+            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 15)) (genSBoxRow (sBoxTable !! 14))) -- 0b111_
+            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 13)) (genSBoxRow (sBoxTable !! 12))) -- 0b110_
         )
         ( cond
             (x !!! 5)
-            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 11) x) (genSBoxRow (sBoxTable !! 10) x)) -- 0b101_
-            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 9) x) (genSBoxRow (sBoxTable !! 8) x)) -- 0b100_
+            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 11)) (genSBoxRow (sBoxTable !! 10))) -- 0b101_
+            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 9)) (genSBoxRow (sBoxTable !! 8))) -- 0b100_
         )
     )
     ( cond
         (x !!! 6)
         ( cond
             (x !!! 5)
-            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 7) x) (genSBoxRow (sBoxTable !! 6) x)) -- 0b011_
-            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 5) x) (genSBoxRow (sBoxTable !! 4) x)) -- 0b010_
+            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 7)) (genSBoxRow (sBoxTable !! 6))) -- 0b011_
+            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 5)) (genSBoxRow (sBoxTable !! 4))) -- 0b010_
         )
         ( cond
             (x !!! 5)
-            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 3) x) (genSBoxRow (sBoxTable !! 2) x)) -- 0b001_
-            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 1) x) (genSBoxRow (sBoxTable !! 0) x)) -- 0b000_
+            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 3)) (genSBoxRow (sBoxTable !! 2))) -- 0b001_
+            (cond (x !!! 4) (genSBoxRow (sBoxTable !! 1)) (genSBoxRow (sBoxTable !! 0))) -- 0b000_
         )
     )
+  where
+    -- \| Choose from the given list of 16 bytes based on the lower 4 bits of the given byte
+    genSBoxRow :: [Byte] -> Byte
+    genSBoxRow c =
+      cond
+        (x !!! 3)
+        ( cond
+            (x !!! 2)
+            (cond (x !!! 1) (cond (x !!! 0) (c !! 15) (c !! 14)) (cond (x !!! 0) (c !! 13) (c !! 12))) -- 0b11__
+            (cond (x !!! 1) (cond (x !!! 0) (c !! 11) (c !! 10)) (cond (x !!! 0) (c !! 9) (c !! 8))) -- 0b10__
+        )
+        ( cond
+            (x !!! 2)
+            (cond (x !!! 1) (cond (x !!! 0) (c !! 7) (c !! 6)) (cond (x !!! 0) (c !! 5) (c !! 4))) -- 0b01__
+            (cond (x !!! 1) (cond (x !!! 0) (c !! 3) (c !! 2)) (cond (x !!! 0) (c !! 1) (c !! 0))) -- 0b00__
+        )
 
 updateUIntWord :: Array Int UIntWord -> UIntWord -> Int -> Comp (Array Int UIntWord)
 updateUIntWord arr (c0, c1, c2, c3) i = do
@@ -251,9 +247,18 @@ runCipher128 = do
   ((output0, output1, output2, output3), (output4, output5, output6, output7), (output8, output9, output10, output11), (output12, output13, output14, output15)) <- cipher128 ((inputs !! 0, inputs !! 1, inputs !! 2, inputs !! 3), (inputs !! 4, inputs !! 5, inputs !! 6, inputs !! 7), (inputs !! 8, inputs !! 9, inputs !! 10, inputs !! 11), (inputs !! 12, inputs !! 13, inputs !! 14, inputs !! 15))
   return [output0, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, output11, output12, output13, output14, output15]
 
-_compileAndReportNumbers :: (Encode a) => FieldType -> Comp a -> IO (Maybe (Int, Counters))
+_compileAndReportNumbers :: (Encode a) => FieldType -> Comp a -> IO (Maybe Int)
 _compileAndReportNumbers field program = do
   result <- compile field program
   case result of
     Left _ -> return Nothing
-    Right r1cs -> return $ Just (length (r1csConstraints r1cs), r1csCounters r1cs)
+    Right r1cs -> return $ Just (length (r1csConstraints r1cs))
+
+pkField :: FieldType
+pkField = Binary 340282366920938463463374607431768211457
+
+nistField :: FieldType
+nistField = Binary 283
+
+_run :: IO (Maybe Int)
+_run = _compileAndReportNumbers pkField runCipher128
