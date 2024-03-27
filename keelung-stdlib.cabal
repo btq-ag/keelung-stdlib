@@ -57,6 +57,7 @@ library
     , base >=4.7 && <5
     , blake2
     , bytestring
+    , containers
     , directory
     , galois-field
     , keelung
@@ -97,6 +98,7 @@ executable profile
     , base >=4.7 && <5
     , blake2
     , bytestring
+    , containers
     , directory
     , galois-field
     , keelung
@@ -151,6 +153,7 @@ test-suite keelung-stdlib-test
     , base >=4.7 && <5
     , blake2
     , bytestring
+    , containers
     , cryptonite
     , directory
     , galois-field

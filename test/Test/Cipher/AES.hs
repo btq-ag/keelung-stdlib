@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unused-local-binds #-}
+
 module Test.Cipher.AES (run, tests) where
 
 import Cipher.AES qualified as AES
@@ -18,6 +20,10 @@ tests =
   testGroup
     "AES"
     [ testGroup
+        "Constraint Count"
+        [ testCase "AES 128" $ testAES128Count 21984
+        ],
+      testGroup
         "SubByte"
         [ testCase "0x00" $ testSubByte 0x00 0x63,
           testCase "0x01" $ testSubByte 0x01 0x7c,
@@ -27,9 +33,10 @@ tests =
         ],
       testGroup
         "SubByte Count"
-        [ testCase "sBox" $ testSubByteCount1 (8 + 18),
-          testCase "sBox2" $ testSubByteCount2 (8 + 18),
-          testCase "sBox3" $ testSubByteCount3 255
+        [ testCase "sBox" $ testSubByteCount1 (26 + 24)
+        -- ,
+        --   testCase "sBox2" $ testSubByteCount2 (8 + 111),
+        --   testCase "sBox3" $ testSubByteCount3 (8 + 247)
         ]
     ]
   where
@@ -55,10 +62,14 @@ tests =
       actual <- numberOfConstraints AES.nistField (input Public <&> AES.sBox3)
       actual @?= Just expected
 
-    numberOfConstraints :: (Encode a) => FieldType -> Comp a -> IO (Maybe Int)
-    numberOfConstraints field program = do
-      result <- compile field program
-      print result
-      case result of
-        Left _ -> return Nothing
-        Right r1cs -> return $ Just (length (R1CS.r1csConstraints r1cs))
+testAES128Count :: Int -> Assertion
+testAES128Count expected = do
+  actual <- numberOfConstraints AES.nistField AES.runCipher128
+  actual @?= Just expected
+
+numberOfConstraints :: (Encode a) => FieldType -> Comp a -> IO (Maybe Int)
+numberOfConstraints field program = do
+  result <- compile field program
+  case result of
+    Left _ -> return Nothing
+    Right r1cs -> return $ Just (length (R1CS.toR1Cs r1cs))

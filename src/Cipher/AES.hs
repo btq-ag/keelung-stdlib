@@ -43,17 +43,17 @@ shiftRows (c0, c1, c2, c3) =
       (s03, s13, s23, s33) = c3
    in ((s00, s11, s22, s33), (s01, s12, s23, s30), (s02, s13, s20, s31), (s03, s10, s21, s32))
 
-mixSingleColumn :: FieldWord -> FieldWord
-mixSingleColumn (x0, x1, x2, x3) =
-  ( 0x02 * x0 + 0x03 * x1 + x2 + x3,
-    x0 + 0x02 * x1 + 0x03 * x2 + x3,
-    x0 + x1 + 0x02 * x2 + 0x03 * x3,
-    0x03 * x0 + x1 + x2 + 0x02 * x3
-  )
-
 -- | MixColumns: each column of the state is multiplied with a fixed polynomial
 mixColumns :: Tuple FieldWord -> Tuple FieldWord
 mixColumns (c0, c1, c2, c3) = (mixSingleColumn c0, mixSingleColumn c1, mixSingleColumn c2, mixSingleColumn c3)
+  where
+    mixSingleColumn :: FieldWord -> FieldWord
+    mixSingleColumn (x0, x1, x2, x3) =
+      ( 0x02 * x0 + 0x03 * x1 + x2 + x3,
+        x0 + 0x02 * x1 + 0x03 * x2 + x3,
+        x0 + x1 + 0x02 * x2 + 0x03 * x3,
+        0x03 * x0 + x1 + x2 + 0x02 * x3
+      )
 
 -- | SBox
 sBox :: Byte -> Comp Byte
@@ -133,6 +133,9 @@ sBox3 x =
             (cond (x !!! 1) (cond (x !!! 0) (c !! 7) (c !! 6)) (cond (x !!! 0) (c !! 5) (c !! 4))) -- 0b01__
             (cond (x !!! 1) (cond (x !!! 0) (c !! 3) (c !! 2)) (cond (x !!! 0) (c !! 1) (c !! 0))) -- 0b00__
         )
+
+-- sBoxPK :: Field -> Comp Field
+-- sBoxPK x = return x 
 
 updateUIntWord :: Array Int UIntWord -> UIntWord -> Int -> Comp (Array Int UIntWord)
 updateUIntWord arr (c0, c1, c2, c3) i = do

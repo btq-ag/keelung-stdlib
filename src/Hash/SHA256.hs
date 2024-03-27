@@ -11,6 +11,7 @@ import Lib.W32M qualified as W32M
 import Lib.W64M qualified as W64M
 import Lib.W8M (W8M)
 import Lib.W8M qualified as W8M
+import qualified Control.Monad as Monad
 
 iv :: [Word32]
 iv =
@@ -103,13 +104,13 @@ hash msg = do
 
   hs' <- execStateT (forM_ chunks compression) hs
 
-  W8M.fromWordNBE =<< toArrayM =<< forM [0 .. 7] (\i -> join $ addM <$> accessM hs i <*> accessM hs' i)
+  W8M.fromWordNBE =<< toArrayM =<< forM [0 .. 7] (\i -> Monad.join $ addM <$> accessM hs i <*> accessM hs' i)
 
 pad :: ArrM W8M -> Comp (ArrM W8M)
 pad xs = do
   let l = lengthOf xs * 8
   let k' = 512 - (l + 64 + 1 + 7) `mod` 512
-  xs' <- ArrayM.concatenate xs =<< join (ArrayM.cons <$> W8M.fromWord8 0x80 <*> (ArrayM.chunks 8 =<< ArrayM.zeroBits k'))
+  xs' <- ArrayM.concatenate xs =<< Monad.join (ArrayM.cons <$> W8M.fromWord8 0x80 <*> (ArrayM.chunks 8 =<< ArrayM.zeroBits k'))
   ArrayM.concatenate xs' =<< W8M.fromWordNBE =<< ArrayM.singleton =<< W64M.fromWord64 (fromIntegral l)
 
 compression :: ArrM W32M -> HV ()
@@ -162,7 +163,7 @@ compression' w i = do
   put hs'
 
 xorM :: Comp (ArrM Boolean) -> Comp (ArrM Boolean) -> Comp (ArrM Boolean)
-xorM x y = join $ ArrayM.xor <$> x <*> y
+xorM x y = Monad.join $ ArrayM.xor <$> x <*> y
 
 addM :: W32M -> W32M -> Comp W32M
 addM = ArrayM.fullAdder

@@ -29,6 +29,7 @@ dependencies:
 - transformers
 - vector
 - directory
+- containers
 
 ghc-options:
 - -Wall
