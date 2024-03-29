@@ -3,7 +3,7 @@
 
 {-# HLINT ignore "Use head" #-}
 
-module Cipher.AES (cipher128, runCipher128, pkField, nistField, sBox, sBox2, sBox3) where
+module Cipher.AES (cipher128, runCipher128, pkField, nistField, sBox, sBox2, sBox3, inversePK) where
 
 import Cipher.AES.Constant
 import Cipher.AES.Types
@@ -134,8 +134,24 @@ sBox3 x =
             (cond (x !!! 1) (cond (x !!! 0) (c !! 3) (c !! 2)) (cond (x !!! 0) (c !! 1) (c !! 0))) -- 0b00__
         )
 
--- sBoxPK :: Field -> Comp Field
--- sBoxPK x = return x 
+-- To compute the multiplicative inverse of `in` mod 283, we assert:
+--    1 = in * out + 283 h
+--    0 ≤ h < 256
+--
+-- However, because of the special case when `in` is 0, we need to extend the assert with an additional variable `m`:
+--    1 = in * out + 283 h + m
+--    0 ≤ h < 256
+--    0 ≤ m < 2
+--    0 = (out + 256 in + 65536 h + 16777216 (1 + m)) * m
+
+inversePK :: Field -> Comp Field
+inversePK x = do
+  out <- freshVarField
+  h <- (freshVarUInt :: Comp Byte) >>= toField
+  m <- (freshVarUInt :: Comp (UInt 1)) >>= toField
+  assert $ 1 `eq` (x * out + 283 * h + m)
+  assert $ 0 `eq` ((out + 256 * x + 65536 * h + 16777216 * (1 + m)) * m)
+  return out
 
 updateUIntWord :: Array Int UIntWord -> UIntWord -> Int -> Comp (Array Int UIntWord)
 updateUIntWord arr (c0, c1, c2, c3) i = do

@@ -24,6 +24,10 @@ tests =
         [ testCase "AES 128" $ testAES128Count 21984
         ],
       testGroup
+        "inversePK"
+        [ testCase "0x00" $ testInversePK 0x00 0x00
+        ],
+      testGroup
         "SubByte"
         [ testCase "0x00" $ testSubByte 0x00 0x63,
           testCase "0x01" $ testSubByte 0x01 0x7c,
@@ -40,6 +44,11 @@ tests =
         ]
     ]
   where
+    testInversePK :: Integer -> Integer -> Assertion
+    testInversePK inputs expected = do
+      actual <- solveOutput AES.pkField (input Public >>= AES.inversePK) [inputs] []
+      actual @?= [expected]
+
     testSubByte :: Integer -> Integer -> Assertion
     testSubByte inputs expected = do
       -- actual <- interpret AES.nistField (AES.sBox2 (fromInteger inputs)) [] []
