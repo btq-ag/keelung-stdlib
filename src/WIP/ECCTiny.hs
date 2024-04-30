@@ -85,8 +85,8 @@ smult n p@(Point (x, y)) = do
     times point 1 = return point
     times point number = do
       if even number
-        then (point `times` (number `div` 2)) >>= reuse >>= \pt -> add pt pt
-        else (point `times` pred number) >>= reuse >>= add point
+        then (point `times` (number `div` 2)) >>= reuse >>= \pt -> addPoint pt pt
+        else (point `times` pred number) >>= reuse >>= addPoint point
 
 condPoint :: Boolean -> Point -> Point -> Point
 condPoint c (Point (x0, y0)) (Point (x1, y1)) =
@@ -114,8 +114,8 @@ handleCornerCases p0@(Point (x0, y0)) p1@(Point (x1, y1)) fallover =
 inverseGuarded :: F -> F
 inverseGuarded n = cond ((n `eq` 0) .|. (n `eq` _p)) 1 (inverse n)
 
-add :: Point -> Point -> Comp Point
-add p0@(Point (x0, y0)) p1@(Point (x1, y1)) =
+addPoint :: Point -> Point -> Comp Point
+addPoint p0@(Point (x0, y0)) p1@(Point (x1, y1)) =
   handleCornerCases p0 p1 $ do
     -- We need to handle the case of possible zero input for `inverse` because
     -- the else branch of condPointM is a `Comp`, which is eagerly evaluated
@@ -136,8 +136,8 @@ smultVar n p = do
     times point@(Point (_, _)) s = do
       let bitsrev = reverse $ map (s !!!) [0 .. widthOf s - 1]
       let f pt bit = do
-            p2 <- reuse =<< add pt pt
-            reuse =<< condPointM (complement bit) p2 (add p2 point)
+            p2 <- reuse =<< addPoint pt pt
+            reuse =<< condPointM (complement bit) p2 (addPoint p2 point)
       foldM f (Point (0, 0)) bitsrev
 
 -- The steps follow [https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm]
@@ -154,7 +154,7 @@ verify pk r s msg_hash = do
   let s_inv = inverseN s
   p1 <- smultVar (msg_hash * s_inv) _g
   p2 <- smultVar (r * s_inv) pk
-  p@(Point (x, _)) <- add p1 p2
+  p@(Point (x, _)) <- addPoint p1 p2
   assert $ p `neqP` zero
   assert . eq r =<< modN x
   where

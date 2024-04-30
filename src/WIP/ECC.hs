@@ -39,15 +39,15 @@ smult n (Point ((a, b), x, y)) = do
     times point 1 = return point
     times point number = do
       if even number
-        then (point `times` (number `div` 2)) >>= reuse >>= \p -> return $ add p p
-        else (point `times` pred number) >>= reuse >>= \p -> return $ p `add` point
+        then (point `times` (number `div` 2)) >>= reuse >>= \p -> return $ addPoint p p
+        else (point `times` pred number) >>= reuse >>= \p -> return $ p `addPoint` point
 
 condPoint :: Boolean -> Point -> Point -> Point
 condPoint b (Point (ec, x0, y0)) (Point (_, x1, y1)) =
   Point (ec, cond b x0 x1, cond b y0 y1)
 
-add :: Point -> Point -> Point
-add p0@(Point (ec@(a, _), x0, y0)) p1@(Point (_, x1, y1)) =
+addPoint :: Point -> Point -> Point
+addPoint p0@(Point (ec@(a, _), x0, y0)) p1@(Point (_, x1, y1)) =
   condPoint (p0 `eqP` zero) p1 $ -- if p0 = O, return p1
     condPoint (p1 `eqP` zero) p0 $ -- if p1 = O, return p0
       condPoint
@@ -81,8 +81,8 @@ smultVar n (Point ((a, b), x, y)) = do
     times point@(Point (ec, _, _)) s = do
       let bitsrev = reverse $ map (s !!!) [0 .. widthOf s - 1]
       let f p bit = do
-            p2 <- reuse (add p p)
-            reuse $ condPoint bit (add p2 point) p2
+            p2 <- reuse (addPoint p p)
+            reuse $ condPoint bit (addPoint p2 point) p2
       foldM f (Point (ec, 0, 0)) bitsrev
 
 -----
