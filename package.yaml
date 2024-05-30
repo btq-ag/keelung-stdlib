@@ -53,16 +53,16 @@ library:
 default-extensions:
   - ImportQualifiedPost
 
-executables:
-  profile:
-    when:
-      - condition: flag(profile)
-        then:
-          main: Profiling
-        else:
-          main: Dummy
-    source-dirs:        
-      - profiling
+# executables:
+#   profile:
+#     when:
+#       - condition: flag(profile)
+#         then:
+#           main: Profiling
+#         else:
+#           main: Dummy
+#     source-dirs:        
+#       - profiling
 
 
 tests:
