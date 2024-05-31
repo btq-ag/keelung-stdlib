@@ -21,7 +21,7 @@ tests =
     "AES"
     [ testGroup
         "Constraint Count"
-        [ testCase "AES 128" $ testAES128Count 21984
+        [ testCase "AES 128" $ testAES128Count 21832
         ],
       testGroup
         "inversePK"
@@ -37,7 +37,7 @@ tests =
         ],
       testGroup
         "SubByte Count"
-        [ testCase "sBox" $ testSubByteCount1 (26 + 24)
+        [ testCase "sBox" $ testSubByteCount1 51
         -- ,
         --   testCase "sBox2" $ testSubByteCount2 (8 + 111),
         --   testCase "sBox3" $ testSubByteCount3 (8 + 247)

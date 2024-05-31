@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.1.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -65,6 +65,53 @@ library
     , vector
     , wide-word
   default-language: Haskell2010
+
+executable profile
+  other-modules:
+      Cipher.AES
+      Cipher.AES.Constant
+      Cipher.AES.Types
+      Hash.Poseidon
+      Hash.Poseidon.Constant
+      Hash.SHA256
+      Lib.Array
+      Lib.ArrayM
+      Lib.W32M
+      Lib.W64M
+      Lib.W8M
+      WIP.BLAKE2b
+      WIP.BLAKE2s
+      WIP.BLAKE2sM
+      WIP.ECC
+      WIP.ECCTiny
+      Profiling.Hash
+      Profiling.MerkleProof
+      Paths_keelung_stdlib
+  hs-source-dirs:
+      src
+      profiling
+  default-extensions:
+      ImportQualifiedPost
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Werror=incomplete-patterns -fno-warn-orphans
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , blake2
+    , bytestring
+    , containers
+    , directory
+    , galois-field
+    , keelung
+    , transformers
+    , vector
+    , wide-word
+  default-language: Haskell2010
+  if flag(profile)
+    main-is: Profiling.hs
+    ghc-options: -main-is Profiling
+  else
+    main-is: Dummy.hs
+    ghc-options: -main-is Dummy
 
 test-suite keelung-stdlib-test
   type: exitcode-stdio-1.0
